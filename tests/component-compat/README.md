@@ -30,7 +30,7 @@ To qualify Nutshell, select one Bitcoin version and add:
 - `mints`: exact Nutshell images with `implementation: "nutshell"`.
 - `wallets`: exact Nutshell images with `implementation: "nutshell-wallet"`.
 
-The supported test contracts are 0.20.3 and 0.21.0. Every selected mint runs
+The supported test contracts are 0.20.3, 0.21.0 and 0.22.1; CI runs 0.22.1 and 0.21.0. Every selected mint runs
 against every selected Lightning backend and every selected wallet. Tests use
 rendered configuration, SQLite, native mint/wallet entrypoints, the actual Rust
 driver, management mutual TLS, and the restricted CLN rune. They pay a real

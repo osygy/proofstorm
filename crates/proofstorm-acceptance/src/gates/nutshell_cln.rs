@@ -1,4 +1,4 @@
-//! Nutshell 0.21.0 + Core Lightning REST: restricted rune contract,
+//! Nutshell 0.22.1 + Core Lightning REST: restricted rune contract,
 //! wallet round trip, balance accounting, and verified teardown.
 //!
 //! Ported from `tests/kubernetes/nutshell_cln_mcp_client.py`.
@@ -20,8 +20,8 @@ fn cell_document() -> Value {
             {"id": "seed-lnd", "kind": "lightning", "implementation": "lnd", "version": proofstorm_core::LND_VERSION, "config_version": "lnd/0.20/v1", "control": "cell", "config": {"alias": "proofstorm-cln-seed"}},
             {"id": "payer-lnd", "kind": "lightning", "implementation": "lnd", "version": proofstorm_core::LND_VERSION, "config_version": "lnd/0.20/v1", "control": "cell", "config": {"alias": "proofstorm-cln-payer"}},
             {"id": "mint-cln", "kind": "lightning", "implementation": "cln", "version": proofstorm_core::CLN_VERSION, "config_version": "cln/26.06/v1", "control": "cell", "config": {"alias": "proofstorm-cln-mint"}},
-            {"id": "mint", "kind": "mint", "implementation": "nutshell", "version": "0.21.0", "config_version": "nutshell-mint/0.20/v1", "control": "target", "config": {"name": "Proofstorm Nutshell CLN", "description": "Core Lightning REST acceptance", "clnrest_enable_mpp": true}},
-            {"id": "wallet", "kind": "wallet", "implementation": "nutshell-wallet", "version": "0.21.0", "config_version": "nutshell-wallet/0.20/v1", "control": "cell", "config": {}}
+            {"id": "mint", "kind": "mint", "implementation": "nutshell", "version": "0.22.1", "config_version": "nutshell-mint/0.20/v1", "control": "target", "config": {"name": "Proofstorm Nutshell CLN", "description": "Core Lightning REST acceptance", "clnrest_enable_mpp": true}},
+            {"id": "wallet", "kind": "wallet", "implementation": "nutshell-wallet", "version": "0.22.1", "config_version": "nutshell-wallet/0.20/v1", "control": "cell", "config": {}}
         ],
         "links": [
             {"id": "seed-chain", "kind": "chain_backend", "from": "seed-lnd", "to": "chain", "binding": {"type": "chain", "network": "regtest"}},
@@ -281,7 +281,7 @@ pub fn run(context: &GateContext) -> Result<()> {
     )?;
 
     println!(
-        "Nutshell 0.21.0 + Core Lightning REST, restricted rune, wallet round-trip, balance accounting, and teardown passed"
+        "Nutshell 0.22.1 + Core Lightning REST, restricted rune, wallet round-trip, balance accounting, and teardown passed"
     );
     Ok(())
 }

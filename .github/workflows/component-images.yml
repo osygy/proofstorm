@@ -190,7 +190,7 @@ jobs:
           set -o pipefail
           driver=proofstorm-qualification-driver:local
           for selection in bitcoin-core@32.1 bitcoin-core@31.2 bitcoin-core@30.4 \
-              nutshell-mint@0.20.3 nutshell-mint@0.21.0 \
+              nutshell-mint@0.21.0 nutshell-mint@0.22.1 \
               cdk-cli-wallet@0.18.3 cdk-mint@0.18.3; do
             work="$RUNNER_TEMP/component-builds/$selection"
             bash scripts/catalog-image.sh build "$selection" "linux/$ARCH" "$work" \
@@ -240,10 +240,10 @@ jobs:
       - name: Qualify Nutshell mint and wallet families against each Lightning release
         run: |
           set -o pipefail
-          jq --slurpfile ns20 "$RUNNER_TEMP/component-builds/nutshell-mint@0.20.3/image.json" \
-            --slurpfile ns21 "$RUNNER_TEMP/component-builds/nutshell-mint@0.21.0/image.json" \
+          jq --slurpfile ns21 "$RUNNER_TEMP/component-builds/nutshell-mint@0.21.0/image.json" \
+            --slurpfile ns22 "$RUNNER_TEMP/component-builds/nutshell-mint@0.22.1/image.json" \
             '.bitcoin=[.bitcoin[]|select(.version=="31.2")] | .driver="proofstorm-qualification-driver:local" |
-             .mints=[{implementation:"nutshell",version:"0.21.0",image:$ns21[0].local_image_id},{implementation:"nutshell",version:"0.20.3",image:$ns20[0].local_image_id}] |
+             .mints=[{implementation:"nutshell",version:"0.22.1",image:$ns22[0].local_image_id},{implementation:"nutshell",version:"0.21.0",image:$ns21[0].local_image_id}] |
              .wallets=[.mints[]|.implementation="nutshell-wallet"]' \
             "$RUNNER_TEMP/bitcoin-lightning.json" > "$RUNNER_TEMP/nutshell-compat.json"
           bash tests/component-compat/bitcoin-lightning.sh "$RUNNER_TEMP/nutshell-compat.json" \

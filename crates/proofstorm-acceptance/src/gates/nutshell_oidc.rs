@@ -1,4 +1,4 @@
-//! Nutshell 0.21.0 + Keycloak 25.0.6: NUT-21 and NUT-22 with Nutshell's upstream default
+//! Nutshell 0.22.1 + Keycloak 25.0.6: NUT-21 and NUT-22 with Nutshell's upstream default
 //! endpoint protection and SQLite primary storage. Auth stores use SQLite and
 //! PostgreSQL (shared with Keycloak), spent-token replay persistence, restart recovery,
 //! and teardown.
@@ -23,7 +23,7 @@ fn cell_document() -> Value {
             {"id": "lightning", "kind": "lightning", "implementation": "lnd", "version": proofstorm_core::LND_VERSION, "config_version": "lnd/0.20/v1", "control": "cell", "config": {"alias": "proofstorm-nutshell-oidc"}},
             {"id": "database", "kind": "database", "implementation": "postgresql", "version": "17.11", "config_version": "postgresql/17/v1", "control": "cell", "config": {"storage_size": "2Gi"}},
             {"id": "identity", "kind": "identity_provider", "implementation": "keycloak", "version": "25.0.6", "config_version": "keycloak/25/v1", "control": "cell", "config": {"access_token_lifespan_seconds": 600}},
-            {"id": "mint", "kind": "mint", "implementation": "nutshell", "version": "0.21.0", "config_version": "nutshell-mint/0.20/v1", "control": "target", "config": {"name": "Proofstorm Authenticated Nutshell", "description": "Live NUT-21 and NUT-22 acceptance", "auth_max_blind_tokens": 3, "auth_rate_limit_per_minute": 2}}
+            {"id": "mint", "kind": "mint", "implementation": "nutshell", "version": "0.22.1", "config_version": "nutshell-mint/0.20/v1", "control": "target", "config": {"name": "Proofstorm Authenticated Nutshell", "description": "Live NUT-21 and NUT-22 acceptance", "auth_max_blind_tokens": 3, "auth_rate_limit_per_minute": 2}}
         ],
         "links": [
             {"id": "lightning-chain", "kind": "chain_backend", "from": "lightning", "to": "chain", "binding": {"type": "chain", "network": "regtest"}},
@@ -75,7 +75,7 @@ pub fn run(context: &GateContext) -> Result<()> {
     )?;
     let published = cell::review(&mut client, &preview)?;
     for (catalog_id, version, config_version) in [
-        ("nutshell", "0.21.0", "nutshell-mint/0.20/v1"),
+        ("nutshell", "0.22.1", "nutshell-mint/0.20/v1"),
         ("keycloak", "25.0.6", "keycloak/25/v1"),
         ("postgresql", "17.11", "postgresql/17/v1"),
     ] {
@@ -249,7 +249,7 @@ pub fn run(context: &GateContext) -> Result<()> {
     client.call("cell_remove", json!({"name": INSTANCE}))?;
     cell::wait_phase(&mut client, INSTANCE, "closed", 100, Duration::from_secs(3))?;
     println!(
-        "Nutshell 0.21.0 + Keycloak 25.0.6 passed NUT-21/NUT-22 with upstream endpoint defaults, SQLite and PostgreSQL auth stores, replay persistence, restart recovery, and teardown"
+        "Nutshell 0.22.1 + Keycloak 25.0.6 passed NUT-21/NUT-22 with upstream endpoint defaults, SQLite and PostgreSQL auth stores, replay persistence, restart recovery, and teardown"
     );
     Ok(())
 }

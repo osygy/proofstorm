@@ -29,7 +29,7 @@ fn cell_document(postgres_enabled: bool) -> Value {
             {"id": "chain", "kind": "bitcoin", "implementation": "bitcoin-core", "version": "32.1", "config_version": "bitcoin-core/31/v1", "control": "cell", "config": {"txindex": true, "fallback_fee": 0.0002}},
             {"id": "peer", "kind": "lightning", "implementation": "cln", "version": proofstorm_core::CLN_VERSION, "config_version": "cln/26.06/v1", "control": "cell", "config": {"alias": "proofstorm-ldk-introduction-peer"}},
             {"id": "mint", "kind": "mint", "implementation": "cdk", "version": proofstorm_core::CDK_VERSION, "config_version": "cdk-mintd/0.18/v1", "control": "target", "config": {"embedded_lightning": "ldk-node", "name": "Proofstorm CDK LDK", "description": "Native CDK embedded-LDK BOLT12 cell"}},
-            {"id":"wallet","kind":"wallet","implementation":"nutshell-wallet","version":"0.21.0","config_version":"nutshell-wallet/0.20/v1","control":"cell","config":{}}
+            {"id":"wallet","kind":"wallet","implementation":"nutshell-wallet","version":"0.22.1","config_version":"nutshell-wallet/0.20/v1","control":"cell","config":{}}
         ],
         "links": [
             {"id": "peer-chain", "kind": "chain_backend", "from": "peer", "to": "chain", "binding": {"type": "chain", "network": "regtest"}},

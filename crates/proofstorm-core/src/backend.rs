@@ -817,11 +817,16 @@ impl BackendContractRegistry {
             .map(|probe| compile_protocol_probe(probe, &backend.service_ports))
             .transpose()?;
         let mut execution_environment = backend.execution_environment.clone();
-        if input.lock.catalog_id == "nutshell"
-            && input.lock.protocol_action_adapter_version.as_deref()
-                == Some("nutshell-mint/0.21/v1")
-        {
-            execution_environment.insert("PROOFSTORM_NUTSHELL_VERSION".into(), "0.21.0".into());
+        // Each versioned Nutshell action contract names the exact release it drives.
+        if input.lock.catalog_id == "nutshell" {
+            let release = match input.lock.protocol_action_adapter_version.as_deref() {
+                Some("nutshell-mint/0.21/v1") => Some("0.21.0"),
+                Some("nutshell-mint/0.22/v1") => Some("0.22.1"),
+                _ => None,
+            };
+            if let Some(release) = release {
+                execution_environment.insert("PROOFSTORM_NUTSHELL_VERSION".into(), release.into());
+            }
         }
         // A Spark federation runs one pod per operator; everything else runs one.
         let desired_replicas = match &effective_config {

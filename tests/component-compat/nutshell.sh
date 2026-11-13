@@ -30,7 +30,7 @@ mint_case() (
   entry=$1 index=$2
   [[ $(jq -r '.implementation' <<< "$entry") == nutshell ]] || { echo 'Unsupported mint matrix entry' >&2; exit 2; }
   version=$(jq -er '.version' <<< "$entry")
-  case "$version" in 0.20.3|0.21.0) ;; *) exit 2 ;; esac
+  case "$version" in 0.20.3|0.21.0|0.22.1) ;; *) exit 2 ;; esac
   mint_image=$(jq -er '.image_id' <<< "$entry")
   directory="$pair_directory/mint-$index"; mkdir "$directory"
   jq -n --argjson mint "$entry" --slurpfile pair "$pair_directory/selection.json" '{mint:$mint,pair:$pair[0]}' > "$directory/selection.json"
@@ -89,14 +89,14 @@ mint_case() (
   # Alias and contract marker are the same transformations covered by renderer tests.
   jq -r --arg version "$version" --arg implementation "$implementation" '
     if $implementation=="lnd" then .MINT_LND_REST_ENDPOINT="https://north:8080" else .MINT_CLNREST_URL="http://north:3010" end |
-    if $version=="0.21.0" then .PROOFSTORM_NUTSHELL_VERSION=$version | if $implementation=="cln" then .MINT_CLNREST_RUNE="/app/data/.proofstorm/cln-xpay.rune" else . end
+    if ($version=="0.21.0" or $version=="0.22.1") then .PROOFSTORM_NUTSHELL_VERSION=$version | if $implementation=="cln" then .MINT_CLNREST_RUNE="/app/data/.proofstorm/cln-xpay.rune" else . end
     else del(.PROOFSTORM_NUTSHELL_VERSION) | if $implementation=="cln" then .MINT_CLNREST_RUNE="/app/data/.proofstorm/cln.rune" else . end end |
     to_entries[]|"\(.key)=\(.value)"' "$directory/rendered-env.json" > "$directory/mint.env"
   printf 'MINT_PRIVATE_KEY=disposable-%s\n' "$name" >> "$directory/mint.env"
   volume_new "$name-data"
   command='exec mint'
   if [[ "$implementation" == cln ]]; then
-    if [[ "$version" == 0.21.0 ]]; then command='/opt/proofstorm/driver cln-mint-rune xpay; exec mint'
+    if [[ "$version" == 0.21.0 || "$version" == 0.22.1 ]]; then command='/opt/proofstorm/driver cln-mint-rune xpay; exec mint'
     else command='/opt/proofstorm/driver cln-mint-rune; exec mint'; fi
     data=/cln
   else data=/lnd; fi

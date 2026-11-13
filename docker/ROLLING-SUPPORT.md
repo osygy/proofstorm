@@ -40,7 +40,7 @@ receipts without a version retain their original recipe/probe interpretation.
 The clean-source and publication checks described in [README.md](README.md) still
 apply. Build both architectures and retain their receipts.
 
-The added preparation recipes are Bitcoin Core 29.4/30.3/31.2 and Nutshell 0.21.0.
+The added preparation recipes are Bitcoin Core 29.4/30.3/31.2 and Nutshell 0.21.0/0.22.1.
 Their checksums, source identities, and recipe digests
 are recorded beside the recipes. LND and CLN use upstream immutable images, served
 by digest from the Proofstorm GHCR mirror (see [README.md](README.md)).
@@ -57,7 +57,7 @@ Bitcoin window advanced to 32 on 2026-11-12, and the CDK support floor applied:
 | Bitcoin Core | 32.1, 31.2, 30.4 |
 | Core Lightning | 26.06.10, 26.04.1, 25.12.1 |
 | LND | 0.21.8-beta, 0.20.8-beta, 0.19.3-beta |
-| Nutshell mint and wallet | 0.21.0, 0.20.3 |
+| Nutshell mint and wallet | 0.22.1, 0.21.0 |
 | CDK mint presets and CLI wallet | 0.18.3; add a second family when 0.19 qualifies |
 
 The catalog supports all three families in each window: Bitcoin Core 32.1
@@ -133,10 +133,17 @@ The `ldk-server-processor` live gate separately checks gRPC readiness, payments,
 quote recovery, and restart persistence; the image jobs do not establish those
 integration behaviors.
 
-Nutshell 0.21 uses the `nutshell-mint/0.21/v1` action contract. The renderer derives
-the expected native version from that locked contract, including for candidates
-that inherit it. Its CLN backend uses a restricted `xpay` rune saved separately
-as `cln-xpay.rune`. Existing 0.20 cells keep their `pay` rune and startup command.
+Nutshell 0.21 and 0.22 use the `nutshell-mint/0.21/v1` and `nutshell-mint/0.22/v1`
+action contracts. The renderer derives the expected native version from the locked
+contract, including for candidates that inherit it. Their CLN backend uses a
+restricted `xpay` rune saved separately as `cln-xpay.rune`. Existing 0.20 cells keep
+their `pay` rune and startup command. Nutshell 0.22 only adds settings (BIP-39
+`MINT_MNEMONIC`, a separate auth key, melt leases and in-memory cache limits);
+Proofstorm keeps generating `MINT_PRIVATE_KEY`, which 0.22 still accepts with a
+deprecation warning, and agents can opt into `MINT_MNEMONIC` through the native
+settings override. 0.22 adds mint database migrations, so support covers fresh
+cells, not an in-place upgrade from 0.21. Nutshell candidate builds stay based on
+0.21.0 until the candidate profile is requalified on 0.22.
 The settings observer rejects mismatched or unreviewed native versions.
 
 Before catalog promotion, verify anonymous image availability, native amd64 and
@@ -150,9 +157,11 @@ The catalog selects CDK 0.18.3 for all three mint presets and the CLI wallet.
 The CDK 0.18.2 mint and the 0.18.2, 0.18.1 and 0.18.0 CLI wallet entries are
 deprecated and retained for existing locks. CDK 0.18.3 fixes SQL transaction
 cleanup and stops a lost SQLite in-memory database from silently reopening empty. Nutshell
-0.21.0 is preferred for both mint and wallet, with 0.20.3 still supported.
-Both Nutshell releases share the configuration schema; the 0.21 mint selects
-its versioned action contract for native version checking and CLN `xpay`.
+0.22.1 is preferred for both mint and wallet, with 0.21.0 still supported and 0.20.3
+deprecated for existing locks. Every supported Nutshell mint claims both supported
+wallet families. All Nutshell releases share the configuration schema; 0.21 and
+0.22 mints select their versioned action contract for native version checking and
+CLN `xpay`.
 The [verification record](../release/cashu-versions-20260918-verification.json)
 records exact artifacts and completed checks. Native AMD64 and the remaining
 managed-cell storage, authentication, and CDK backend gates still require

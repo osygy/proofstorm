@@ -2618,13 +2618,15 @@ pub fn render_nutshell_mint_component(
     if auth_database.is_none() {
         environment.insert("MINT_AUTH_DATABASE".into(), "/app/data".into());
     }
-    let uses_xpay = plan
+    // Nutshell 0.21 and newer pay through CLN's xpay; 0.20 keeps pay.
+    let release = plan
         .execution_context
         .environment
         .get("PROOFSTORM_NUTSHELL_VERSION")
-        .is_some_and(|version| version == "0.21.0");
-    if uses_xpay {
-        environment.insert("PROOFSTORM_NUTSHELL_VERSION".into(), "0.21.0".into());
+        .filter(|version| matches!(version.as_str(), "0.21.0" | "0.22.1"));
+    let uses_xpay = release.is_some();
+    if let Some(release) = release {
+        environment.insert("PROOFSTORM_NUTSHELL_VERSION".into(), release.clone());
         if uses_cln {
             environment.insert(
                 "MINT_CLNREST_RUNE".into(),

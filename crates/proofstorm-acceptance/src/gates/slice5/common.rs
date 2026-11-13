@@ -19,8 +19,8 @@ pub(super) fn components(scenario: Scenario) -> Vec<Value> {
         json!({"id": "payer-lnd", "kind": "lightning", "implementation": "lnd", "version": proofstorm_core::LND_VERSION, "config_version": "lnd/0.20/v1", "control": "cell", "config": {"alias": "proofstorm-payer"}}),
         json!({"id": "workspace-cln", "kind": "lightning", "implementation": "cln", "version": proofstorm_core::CLN_VERSION, "config_version": "cln/26.06/v1", "control": "workspace", "config": {"alias": "proofstorm-workspace"}}),
         json!({"id": "mint", "kind": "mint", "implementation": "cdk", "version": proofstorm_core::CDK_VERSION, "config_version": "cdk-mintd/0.18/v1", "control": "target", "config": {"name": "Proofstorm Slice 5", "description": "Agent-created Cashu cell"}}),
-        json!({"id": "wallet", "kind": "wallet", "implementation": "nutshell-wallet", "version": "0.21.0", "config_version": "nutshell-wallet/0.20/v1", "control": "cell", "config": {}}),
-        json!({"id": "receiver-wallet", "kind": "wallet", "implementation": "nutshell-wallet", "version": "0.21.0", "config_version": "nutshell-wallet/0.20/v1", "control": "cell", "config": {}}),
+        json!({"id": "wallet", "kind": "wallet", "implementation": "nutshell-wallet", "version": "0.22.1", "config_version": "nutshell-wallet/0.20/v1", "control": "cell", "config": {}}),
+        json!({"id": "receiver-wallet", "kind": "wallet", "implementation": "nutshell-wallet", "version": "0.22.1", "config_version": "nutshell-wallet/0.20/v1", "control": "cell", "config": {}}),
     ];
     if matches!(scenario, Scenario::Channels) {
         components.retain(|component| {
@@ -32,7 +32,7 @@ pub(super) fn components(scenario: Scenario) -> Vec<Value> {
         // fee evidence; CDK payment interoperability has its own wallet gate.
         let mint = components.iter_mut().find(|c| c["id"] == "mint").unwrap();
         mint["implementation"] = json!("nutshell");
-        mint["version"] = json!("0.21.0");
+        mint["version"] = json!("0.22.1");
         mint["config_version"] = json!("nutshell-mint/0.20/v1");
     }
     components

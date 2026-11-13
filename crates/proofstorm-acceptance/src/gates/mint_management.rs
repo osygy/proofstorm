@@ -20,7 +20,7 @@ fn document() -> Value {
     // Component IDs name the payment path; every CDK mint is the one CDK entry.
     for id in MINTS {
         let (implementation, version, config_version) = if *id == "nutshell" {
-            ("nutshell", "0.21.0", "nutshell-mint/0.20/v1")
+            ("nutshell", "0.22.1", "nutshell-mint/0.20/v1")
         } else {
             ("cdk", proofstorm_core::CDK_VERSION, "cdk-mintd/0.18/v1")
         };

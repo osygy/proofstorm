@@ -122,7 +122,7 @@ mod tests {
             default_backend_registry(),
         )
         .expect("coverage manifest");
-        assert_eq!(manifest.entries.len(), 42);
+        assert_eq!(manifest.entries.len(), 44);
         let cdk = manifest
             .entries
             .iter()
@@ -195,7 +195,7 @@ mod tests {
         assert!(
             cdk.support.compatible_wallet_adapters[0]
                 .versions
-                .contains("0.20.3")
+                .contains("0.22.1")
         );
         assert_eq!(cdk.support.embedded_payment_bindings.len(), 3);
         assert_eq!(
@@ -209,9 +209,8 @@ mod tests {
         let nutshell = manifest
             .entries
             .iter()
-            .find(|entry| entry.implementation == "nutshell")
-            .expect("Nutshell mint coverage");
-        assert_eq!(nutshell.upstream_version, "0.20.3");
+            .find(|entry| entry.implementation == "nutshell" && entry.upstream_version == "0.20.3")
+            .expect("retained Nutshell 0.20.3 coverage");
         assert_eq!(nutshell.config_version, "nutshell-mint/0.20/v1");
         assert_eq!(
             nutshell.support.storage,

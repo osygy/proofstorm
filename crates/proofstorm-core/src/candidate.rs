@@ -845,7 +845,7 @@ mod tests {
         let base = default_catalog()
             .entries
             .iter()
-            .find(|e| e.id == "nutshell")
+            .find(|e| e.id == "nutshell" && e.version == "0.21.0")
             .unwrap();
         let entry = candidate_catalog_entry(base, &mint).unwrap();
         let source = entry.source.as_ref().unwrap();
@@ -980,7 +980,7 @@ mod tests {
         let base = default_catalog()
             .entries
             .iter()
-            .find(|e| e.id == "nutshell")
+            .find(|e| e.id == "nutshell" && e.version == "0.21.0")
             .unwrap();
         assert!(
             !candidate_catalog_entry(base, &old)
@@ -1025,7 +1025,7 @@ mod tests {
             .iter()
             .find(|support| support.implementation == "nutshell")
             .expect("Nutshell support");
-        assert_eq!(support.preferred_version.as_deref(), Some("0.21.0"));
+        assert_eq!(support.preferred_version.as_deref(), Some("0.22.1"));
         assert!(
             !support
                 .supported_versions

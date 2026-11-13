@@ -58,6 +58,14 @@ pub(crate) fn cdk_0181(amd64: bool) -> (&'static str, &'static str) {
     }
 }
 
+pub(crate) fn nutshell_0221(amd64: bool) -> &'static str {
+    if amd64 {
+        "proofstorm-registry.localhost:5000/nutshell-mint@sha256:b4262dbc0eb78e5c7c3b8aa971ce41e1ecf916a9227ff81274a9a7614971ff3d"
+    } else {
+        "proofstorm-registry.localhost:5000/nutshell-mint@sha256:3e2fe1a1f5569d38e545dddff890066899cc289cd8cc86c36b3e4584542f2576"
+    }
+}
+
 pub(crate) fn nutshell_021(amd64: bool) -> &'static str {
     if amd64 {
         "proofstorm-registry.localhost:5000/nutshell-mint@sha256:902461e83918af77a7b82ba2b08ef1709989fc81394ed18191d4bd7e60cdd846"

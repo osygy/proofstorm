@@ -653,7 +653,7 @@ fn build_catalog_with_spark(amd64: bool, spark_images: Option<&spark::Images>) -
                         AuthenticationMode::Nut21Clear,
                         AuthenticationMode::Nut22Blind,
                     ],
-                    vec![version_support("nutshell-wallet", &["0.20.3", "0.21.0"])],
+                    vec![version_support("nutshell-wallet", &["0.21.0", "0.22.1"])],
                 ),
                 &[
                     embedded_payment_binding(PaymentMethod::Bolt11, "sat", "ldk-node"),
@@ -876,6 +876,9 @@ fn release_steps(amd64: bool) -> Vec<ReleaseStep> {
     let bitcoin_provenance = include_str!("../../../docker/bitcoin/bitcoin-32.1-provenance.json");
     let nutshell = crate::wallet_builds::nutshell_021(amd64);
     let nutshell_provenance = include_str!("../../../docker/mint/nutshell-0.21.0-provenance.json");
+    let nutshell_0221 = crate::wallet_builds::nutshell_0221(amd64);
+    let nutshell_0221_provenance =
+        include_str!("../../../docker/mint/nutshell-0.22.1-provenance.json");
     vec![
         (
             "cdk-cli-wallet",
@@ -919,18 +922,34 @@ fn release_steps(amd64: bool) -> Vec<ReleaseStep> {
             bitcoin_provenance,
             SupportLifecycle::Supported,
         ),
+        // The rolling two-family window: 0.22 is current, 0.21 stays
+        // supported, and 0.20 retires to existing locks.
         (
             "nutshell",
             "0.21.0",
             nutshell,
             nutshell_provenance,
-            SupportLifecycle::Supported,
+            SupportLifecycle::Deprecated,
         ),
         (
             "nutshell-wallet",
             "0.21.0",
             nutshell,
             nutshell_provenance,
+            SupportLifecycle::Deprecated,
+        ),
+        (
+            "nutshell",
+            "0.22.1",
+            nutshell_0221,
+            nutshell_0221_provenance,
+            SupportLifecycle::Supported,
+        ),
+        (
+            "nutshell-wallet",
+            "0.22.1",
+            nutshell_0221,
+            nutshell_0221_provenance,
             SupportLifecycle::Supported,
         ),
     ]
@@ -949,12 +968,32 @@ fn promote_component_releases(entries: &mut Vec<CatalogEntry>, amd64: bool) {
             .expect("promoted implementation has a base entry");
         let mut old = entry.clone();
         old.support_lifecycle = replaced_lifecycle;
+        let replaced_version = old.version.clone();
+        let replaced_contract = old.protocol_action_adapter_version.clone();
         entry.version = version.into();
         entry.description = entry.description.replace(&old.version, version);
         entry.image = image.into();
         previous.push(old);
         if entry.id == "nutshell" {
-            entry.protocol_action_adapter_version = Some("nutshell-mint/0.21/v1".into());
+            let family = version
+                .rsplit_once('.')
+                .map_or(version, |(family, _)| family);
+            entry.protocol_action_adapter_version = Some(format!("nutshell-mint/{family}/v1"));
+            // The current release and the one before it; supported mints are
+            // widened to the supported wallet window below.
+            entry.support_matrix.compatible_wallet_adapters = vec![version_support(
+                "nutshell-wallet",
+                &[replaced_version.as_str(), version],
+            )];
+        }
+        // Auth arrives once, when the entry first gains a versioned Nutshell
+        // contract (0.21, the first auth-capable release); later promotions
+        // carry it forward.
+        if entry.id == "nutshell"
+            && !replaced_contract
+                .as_deref()
+                .is_some_and(|contract| contract.starts_with("nutshell-mint/"))
+        {
             entry.runtime_endpoints[0].limitations.push("Enable NUT-21/22 with an authentication_backend link to Keycloak. Auth storage defaults to SQLite; an optional database_backend link with role authentication selects PostgreSQL independently of primary storage. Use auth_max_blind_tokens and auth_rate_limit_per_minute for issuance limits. Endpoint protection follows upstream defaults. Native wallet authentication is supported; typed wallet operations against protected mints are not.".into());
 
             entry
@@ -969,8 +1008,6 @@ fn promote_component_releases(entries: &mut Vec<CatalogEntry>, amd64: bool) {
                 "keycloak",
                 &["25.0.6"],
             ));
-            entry.support_matrix.compatible_wallet_adapters =
-                vec![version_support("nutshell-wallet", &["0.20.3", "0.21.0"])];
         }
         let provenance: BuildProvenance =
             serde_json::from_str(encoded).expect("promoted release build provenance");
@@ -983,6 +1020,22 @@ fn promote_component_releases(entries: &mut Vec<CatalogEntry>, amd64: bool) {
         entry.build_provenance = Some(provenance);
     }
     entries.extend(previous);
+    // Every supported Nutshell mint pairs with every supported Nutshell wallet
+    // (CI runs each mint family against each wallet family). Deprecated mints
+    // keep the claims they were qualified with.
+    let wallets: Vec<String> = entries
+        .iter()
+        .filter(|entry| entry.id == "nutshell-wallet" && entry.support_lifecycle.is_supported())
+        .map(|entry| entry.version.clone())
+        .collect();
+    let wallets: Vec<&str> = wallets.iter().map(String::as_str).collect();
+    for entry in entries
+        .iter_mut()
+        .filter(|entry| entry.id == "nutshell" && entry.support_lifecycle.is_supported())
+    {
+        entry.support_matrix.compatible_wallet_adapters =
+            vec![version_support("nutshell-wallet", &wallets)];
+    }
 }
 
 /// Older release families in a rolling window: copies of the current entry
@@ -2531,7 +2584,7 @@ mod tests {
     )]
     fn catalog_support_summary_is_exact_and_invariants_fail_closed() {
         let catalog = catalog_for_platform(CatalogPlatform::LinuxArm64);
-        assert_eq!(catalog.entries.len(), 42);
+        assert_eq!(catalog.entries.len(), 44);
         assert_eq!(catalog.implementations.len(), 20);
         let lnd = catalog
             .implementations
@@ -2699,7 +2752,7 @@ mod tests {
             for id in ["cdk-cli-wallet", "nutshell", "nutshell-wallet"] {
                 let cdk = id.starts_with("cdk");
                 let old_version = if cdk { "0.18.0" } else { "0.20.3" };
-                let version = if cdk { "0.18.3" } else { "0.21.0" };
+                let version = if cdk { "0.18.3" } else { "0.22.1" };
                 let support = catalog
                     .implementations
                     .iter()
@@ -2716,14 +2769,7 @@ mod tests {
                     .iter()
                     .find(|entry| entry.id == id && entry.version == version)
                     .unwrap();
-                assert_eq!(
-                    old.support_lifecycle,
-                    if cdk {
-                        SupportLifecycle::Deprecated
-                    } else {
-                        SupportLifecycle::Supported
-                    }
-                );
+                assert_eq!(old.support_lifecycle, SupportLifecycle::Deprecated);
                 assert_eq!(current.support_lifecycle, SupportLifecycle::Preferred);
                 assert_ne!(old.image, current.image);
                 assert_ne!(old.source_digest, current.source_digest);
@@ -2733,13 +2779,22 @@ mod tests {
                     if cdk {
                         "b2035a3525c98b22226926bdc20fa128a1351ae5"
                     } else {
-                        "a9749146c6bd7f9ab75375a050e9ba795cee301c"
+                        "3ab0137b0c6b214cecc2f883be606a668ae74e60"
                     }
                 );
+                if !cdk {
+                    // The previous family stays supported for new cells.
+                    let previous = catalog
+                        .entries
+                        .iter()
+                        .find(|entry| entry.id == id && entry.version == "0.21.0")
+                        .unwrap();
+                    assert_eq!(previous.support_lifecycle, SupportLifecycle::Supported);
+                }
                 if id == "nutshell" {
                     assert_eq!(
                         current.protocol_action_adapter_version.as_deref(),
-                        Some("nutshell-mint/0.21/v1")
+                        Some("nutshell-mint/0.22/v1")
                     );
                     assert_eq!(
                         old.protocol_action_adapter_version.as_deref(),

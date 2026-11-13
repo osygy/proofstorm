@@ -3421,7 +3421,7 @@ mod tests {
         assert!(backend.supports(NetworkFaultFeature::Partition));
         assert!(!backend.supports(NetworkFaultFeature::Delay));
         let catalog = default_catalog();
-        assert_eq!(catalog.entries.len(), 42);
+        assert_eq!(catalog.entries.len(), 44);
         assert!(catalog.entries.iter().all(|entry| {
             entry.config_version.contains('/')
                 && entry.config_schema_digest.starts_with("sha256:")
@@ -3451,7 +3451,7 @@ mod tests {
         assert!(
             cdk.support_matrix.compatible_wallet_adapters[0]
                 .versions
-                .contains("0.20.3")
+                .contains("0.22.1")
         );
         assert!(
             cdk.config_schema["properties"]
@@ -3619,7 +3619,7 @@ mod tests {
                             | ("bitcoin-core", "31.2" | "30.4")
                     ) && entry.support_lifecycle == SupportLifecycle::Supported
                     || matches!(entry.id.as_str(), "nutshell" | "nutshell-wallet")
-                        && entry.version == "0.20.3"
+                        && entry.version == "0.21.0"
                         && entry.support_lifecycle == SupportLifecycle::Supported)
         }));
         let summary = page

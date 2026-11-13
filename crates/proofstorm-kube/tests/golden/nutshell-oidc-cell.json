@@ -507,9 +507,9 @@
         "environment": {
           "CASHU_DIR": "/app/data",
           "HOME": "/app/data",
-          "PROOFSTORM_NUTSHELL_VERSION": "0.21.0"
+          "PROOFSTORM_NUTSHELL_VERSION": "0.22.1"
         },
-        "image": "proofstorm-registry.localhost:5000/nutshell-mint@sha256:f0c0e8a710e519774b0880841aac6c128471260cbc51da6306cfe60e9b08deda",
+        "image": "proofstorm-registry.localhost:5000/nutshell-mint@sha256:3e2fe1a1f5569d38e545dddff890066899cc289cd8cc86c36b3e4584542f2576",
         "mounts": [
           {
             "mount_path": "/app/data",
@@ -610,7 +610,7 @@
         }
       ],
       "revision_digest": "sha256:b2-golden-revision",
-      "rollout_digest": "sha256:3c8f6c42ac2346ce2003db769b09ed36b4ef3038cdc008d70800ea33e2c8cb13",
+      "rollout_digest": "sha256:4d830b5b92a1fca3d70e7c28bb06d6da18024df1c11dcdc084500b9f4f577d58",
       "storage": [
         {
           "claim_name": "mint-data"
@@ -623,7 +623,7 @@
         "ports": {
           "http": 3338
         },
-        "version": "0.21.0"
+        "version": "0.22.1"
       },
       "workload": {
         "desired_replicas": 1,
@@ -696,7 +696,7 @@
           "MINT_WATCHDOG_BALANCE_CHECK_INTERVAL_SECONDS": "60",
           "MINT_WATCHDOG_ENABLED": "FALSE",
           "MINT_WEBSOCKET_READ_TIMEOUT": "600",
-          "PROOFSTORM_NUTSHELL_VERSION": "0.21.0",
+          "PROOFSTORM_NUTSHELL_VERSION": "0.22.1",
           "TOR": "FALSE"
         },
         "kind": "ConfigMap",
@@ -744,7 +744,7 @@
           "template": {
             "metadata": {
               "annotations": {
-                "proofstorm.dev/rollout-digest": "sha256:3c8f6c42ac2346ce2003db769b09ed36b4ef3038cdc008d70800ea33e2c8cb13"
+                "proofstorm.dev/rollout-digest": "sha256:4d830b5b92a1fca3d70e7c28bb06d6da18024df1c11dcdc084500b9f4f577d58"
               },
               "labels": {
                 "app.kubernetes.io/managed-by": "proofstormd",
@@ -778,7 +778,7 @@
                       }
                     }
                   ],
-                  "image": "proofstorm-registry.localhost:5000/nutshell-mint@sha256:f0c0e8a710e519774b0880841aac6c128471260cbc51da6306cfe60e9b08deda",
+                  "image": "proofstorm-registry.localhost:5000/nutshell-mint@sha256:3e2fe1a1f5569d38e545dddff890066899cc289cd8cc86c36b3e4584542f2576",
                   "imagePullPolicy": "IfNotPresent",
                   "name": "component",
                   "ports": [

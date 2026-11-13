@@ -93,6 +93,12 @@ pub(super) const ADDED_VERSIONS: &[(&str, &str, &str, &str)] = &[
         "fe468cad486157683eddbc0df4ff87ba71b6c0a3\n",
     ),
     (
+        "cdk-ldk-server-processor",
+        "0.1.0-d7244e2",
+        "docker/payment/cdk-ldk-server-d7244e2-provenance.json",
+        "d7244e261506b51d5b309a558bf19cd4ffc32f13\n",
+    ),
+    (
         "cdk-mint",
         "0.18.1",
         "docker/mint/cdk-0.18.1-provenance.json",
@@ -416,12 +422,12 @@ fn cocod_external_context_cannot_drift_or_become_a_link() {
             .to_string(),
     )
     .unwrap();
-    verify_cocod_archive(&work).unwrap();
+    verify_cocod_archive(&work, None).unwrap();
     fs::write(work.join("context/source.tar.gz"), b"changed").unwrap();
-    assert!(verify_cocod_archive(&work).is_err());
+    assert!(verify_cocod_archive(&work, None).is_err());
     fs::rename(work.join("context/source.tar.gz"), work.join("outside")).unwrap();
     std::os::unix::fs::symlink(work.join("outside"), work.join("context/source.tar.gz")).unwrap();
-    assert!(verify_cocod_archive(&work).is_err());
+    assert!(verify_cocod_archive(&work, None).is_err());
 }
 
 fn receipt() -> Receipt {

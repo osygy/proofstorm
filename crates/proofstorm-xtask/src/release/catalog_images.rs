@@ -110,6 +110,16 @@ const VERSIONED_RECIPES: &[(&str, &str, &str)] = &[
         "0.18.3",
         "docker/wallet/Dockerfile.cdk-0.18.3",
     ),
+    (
+        "cdk-ldk-server-processor",
+        "0.1.0-d7244e2",
+        "docker/payment/Dockerfile.cdk-ldk-server-d7244e2",
+    ),
+    (
+        "cocod-wallet",
+        "0.0.17-dev.8fd97f38",
+        "docker/wallet/Dockerfile.cocod-8fd97f38",
+    ),
     // Macaroon authentication for open-ssp; the LDK Server processor keeps 50fe752.
     (
         "ldk-server",
@@ -492,15 +502,27 @@ fn load(work: &Path) -> Result<Receipt> {
             "recipe changed after preparation"
         );
         if receipt.repository == "cocod-wallet" {
-            verify_cocod_archive(work)?;
+            let version = match &receipt.input {
+                Input::Build { version, .. } => version.clone(),
+                Input::Copy { .. } => None,
+            };
+            verify_cocod_archive(work, version.as_deref())?;
         }
     }
     Ok(receipt)
 }
 
-fn prepare_cocod(staging: &Path, recipe_sha256: &str) -> Result<()> {
-    let record =
-        bundle::read_json(&staging.join("source/docker/wallet/cocod-44e5101c-provenance.json"))?;
+/// The provenance record of a reviewed cocod source snapshot. Receipts made
+/// before versioned recipes recorded no version; they are the legacy snapshot.
+fn cocod_provenance(version: Option<&str>) -> &'static str {
+    match version {
+        Some("0.0.17-dev.8fd97f38") => "docker/wallet/cocod-8fd97f38-provenance.json",
+        _ => "docker/wallet/cocod-44e5101c-provenance.json",
+    }
+}
+
+fn prepare_cocod(staging: &Path, version: &str, recipe_sha256: &str) -> Result<()> {
+    let record = bundle::read_json(&staging.join("source").join(cocod_provenance(Some(version))))?;
     let commit = text(&record, "commit_sha")?;
     ensure!(
         commit.len() == 40
@@ -537,13 +559,12 @@ fn prepare_cocod(staging: &Path, recipe_sha256: &str) -> Result<()> {
         status.success() && fs::metadata(&archive)?.len() <= 256 * 1024 * 1024,
         "source archive download failed"
     );
-    verify_cocod_archive(staging)?;
+    verify_cocod_archive(staging, Some(version))?;
     Ok(())
 }
 
-fn verify_cocod_archive(work: &Path) -> Result<()> {
-    let record =
-        bundle::read_json(&work.join("source/docker/wallet/cocod-44e5101c-provenance.json"))?;
+fn verify_cocod_archive(work: &Path, version: Option<&str>) -> Result<()> {
+    let record = bundle::read_json(&work.join("source").join(cocod_provenance(version)))?;
     let path = work.join("context/source.tar.gz");
     crate::development::regular(&path)?;
     ensure!(
@@ -605,7 +626,7 @@ fn prepare(root: &Path, work: &Path, name: &str, platform: &str, copy: Option<&s
             &recipe_sha256,
         )?;
         if name == "cocod-wallet" {
-            prepare_cocod(staging.path(), &recipe_sha256)?;
+            prepare_cocod(staging.path(), version, &recipe_sha256)?;
         }
         Input::Build {
             source,
@@ -707,6 +728,9 @@ fn valid_probe_version(repository: &str, version: &str, output: &str) -> bool {
                 == "ldk-server 0.1.0 (unknown)\nldk-server-cli 0.1.0 (unknown)\n762bc473342c8f945475785ec6743a9b26f56aff"
         }
         "ldk-server" => output.trim() == "ldk-server 0.1.0\nldk-server-cli 0.1.0",
+        "cdk-ldk-server-processor" if version == "0.1.0-d7244e2" => {
+            output.trim() == "d7244e261506b51d5b309a558bf19cd4ffc32f13"
+        }
         "cdk-ldk-server-processor" => output.trim() == "fe468cad486157683eddbc0df4ff87ba71b6c0a3",
         "cdk-bark-processor" => {
             output.trim()

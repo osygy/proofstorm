@@ -1,6 +1,6 @@
 {
   "api_version": "proofstorm/configuration-coverage/v1alpha1",
-  "catalog_digest": "sha256:f7d2779f4fdf92c61677280611ddbf00603413665060abfcd21b8480ddd534f9",
+  "catalog_digest": "sha256:745b47de4be6a1a1c8996ec60b88b7cd525f5b784d3cc90c43299dc34c9463c1",
   "entries": [
     {
       "implementation": "bark-server",
@@ -797,7 +797,7 @@
           "link_kind": "authentication_backend",
           "implementation": "keycloak",
           "versions": [
-            "25.0.6"
+            "26.8.2"
           ]
         },
         {
@@ -1234,7 +1234,7 @@
           "link_kind": "authentication_backend",
           "implementation": "keycloak",
           "versions": [
-            "25.0.6"
+            "26.8.2"
           ]
         },
         {
@@ -2389,10 +2389,72 @@
       "kind": "identity_provider",
       "upstream_version": "25.0.6",
       "release_channel": "stable",
-      "support_lifecycle": "preferred",
+      "support_lifecycle": "deprecated",
       "config_version": "keycloak/25/v1",
       "config_schema_digest": "sha256:846716297d4fefb554fd7f7361c03d58129637e3fdb3eaedda93985b5ea92ab0",
       "image": "proofstorm-registry.localhost:5000/upstream/quay.io/keycloak/keycloak@sha256:82c5b7a110456dbd42b86ea572e728878549954cc8bd03cd65410d75328095d2",
+      "fields": {
+        "access_token_lifespan_seconds": {
+          "classification": "agent_authorable",
+          "required": true
+        },
+        "administrator_credentials": {
+          "classification": "generated_instance_secret",
+          "required": true
+        },
+        "client_id": {
+          "classification": "runtime_policy",
+          "required": true
+        },
+        "database_credentials": {
+          "classification": "generated_instance_secret",
+          "required": true
+        },
+        "database_endpoint": {
+          "classification": "topology_derived",
+          "required": true
+        },
+        "realm": {
+          "classification": "runtime_policy",
+          "required": true
+        },
+        "realm_import": {
+          "classification": "generated_instance_secret",
+          "required": true
+        },
+        "test_user_credentials": {
+          "classification": "generated_instance_secret",
+          "required": true
+        }
+      },
+      "support": {
+        "storage": [],
+        "payment_methods": [],
+        "payment_backends": [],
+        "units": [],
+        "payment_bindings": [],
+        "authentication": [],
+        "compatible_wallet_adapters": []
+      },
+      "compatible_dependencies": [
+        {
+          "link_kind": "database_backend",
+          "implementation": "postgresql",
+          "versions": [
+            "17.11"
+          ]
+        }
+      ]
+    },
+    {
+      "implementation": "keycloak",
+      "kind": "identity_provider",
+      "upstream_version": "26.8.2",
+      "release_channel": "stable",
+      "support_lifecycle": "preferred",
+      "config_version": "keycloak/25/v1",
+      "config_schema_digest": "sha256:846716297d4fefb554fd7f7361c03d58129637e3fdb3eaedda93985b5ea92ab0",
+      "image": "proofstorm-registry.localhost:5000/upstream/quay.io/keycloak/keycloak@sha256:c68e286cacd87b942ac1939a0a1481461109d6acd3a57dc496969a319a76bbf0",
       "fields": {
         "access_token_lifespan_seconds": {
           "classification": "agent_authorable",
@@ -3839,7 +3901,7 @@
           "link_kind": "authentication_backend",
           "implementation": "keycloak",
           "versions": [
-            "25.0.6"
+            "26.8.2"
           ]
         }
       ]
@@ -4176,7 +4238,7 @@
           "link_kind": "authentication_backend",
           "implementation": "keycloak",
           "versions": [
-            "25.0.6"
+            "26.8.2"
           ]
         }
       ]

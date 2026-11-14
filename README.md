@@ -119,7 +119,7 @@ Use native `cdk-cli` login and blind-auth commands through component execution
 for wallet testing. Typed wallet operations against protected mints are not yet
 supported.
 
-Nutshell 0.21.0 uses the same Keycloak link. Its auth store defaults to SQLite;
+Nutshell 0.21.0 and 0.22.1 use the same Keycloak link. Its auth store defaults to SQLite;
 an optional `database_backend` link with `role: authentication` selects
 PostgreSQL independently of primary storage. Its issuance settings are
 `auth_max_blind_tokens` (default 100) and `auth_rate_limit_per_minute` (default

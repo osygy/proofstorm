@@ -122,7 +122,7 @@ mod tests {
             default_backend_registry(),
         )
         .expect("coverage manifest");
-        assert_eq!(manifest.entries.len(), 46);
+        assert_eq!(manifest.entries.len(), 47);
         let cdk = manifest
             .entries
             .iter()

@@ -1660,6 +1660,18 @@ pub fn render_keycloak_component(
         ))
     })?;
     let http_port = target_port(&plan.target_descriptor, "http")?;
+    // Keycloak 26 replaced KEYCLOAK_ADMIN* with bootstrap administrator settings;
+    // deprecated 25.x locks keep the names that release reads.
+    let legacy = plan
+        .execution_context
+        .environment
+        .get("PROOFSTORM_KEYCLOAK_VERSION")
+        .is_some_and(|version| version.starts_with("25."));
+    let (admin_username, admin_password) = if legacy {
+        ("KEYCLOAK_ADMIN", "KEYCLOAK_ADMIN_PASSWORD")
+    } else {
+        ("KC_BOOTSTRAP_ADMIN_USERNAME", "KC_BOOTSTRAP_ADMIN_PASSWORD")
+    };
     let namespace = instance_namespace(&plan.instance_key);
     let secret_name = format!("{}-credentials", plan.component_id);
     let labels = labels(&plan.instance_key, Some(&plan.component_id));
@@ -1699,10 +1711,10 @@ pub fn render_keycloak_component(
                         {"name": "KC_HTTP_ENABLED", "value": "true"},
                         {"name": "KC_HEALTH_ENABLED", "value": "true"},
                         {"name": "JAVA_OPTS_KC_HEAP", "value": "-XX:InitialRAMPercentage=10 -XX:MaxRAMPercentage=45"},
-                        {"name": "KEYCLOAK_ADMIN", "value": "proofstorm-admin"},
+                        {"name": admin_username, "value": "proofstorm-admin"},
                         {"name": "PROOFSTORM_OIDC_PORT", "value": http_port.to_string()},
                         {"name": "OIDC_ACCESS_TOKEN_LIFESPAN_SECONDS", "value": access_token_lifespan_seconds.to_string()},
-                        {"name": "KEYCLOAK_ADMIN_PASSWORD", "valueFrom": {"secretKeyRef": {"name": secret_name, "key": "KEYCLOAK_ADMIN_PASSWORD"}}}
+                        {"name": admin_password, "valueFrom": {"secretKeyRef": {"name": secret_name, "key": "KEYCLOAK_ADMIN_PASSWORD"}}}
                     ],
                     "ports": [{"name": "http", "containerPort": http_port}],
                     "securityContext": container_security(),

@@ -11,6 +11,7 @@ pub(crate) const EXPERIMENTAL_BITCOIN_VERSIONS: &[&str] = &["31.2"];
 pub const CDK_VERSION: &str = "0.18.3";
 pub const LND_VERSION: &str = "0.21.8-beta";
 pub const CLN_VERSION: &str = "26.06.10";
+pub const KEYCLOAK_VERSION: &str = "26.8.2";
 
 // Shared CDK daemon with LDK, BDK and PostgreSQL support.
 pub const CDK_MINT_IMAGE: &str = "proofstorm-registry.localhost:5000/cdk-mint@sha256:ad3a895cd2faeb41d8251f874dde164c1a75afc6a4adda1517aae3f520a69bd9";
@@ -632,7 +633,11 @@ fn build_catalog_with_spark(amd64: bool, spark_images: Option<&spark::Images>) -
                 dependency(LinkKind::PaymentBackend, "cln", CLN_VERSIONS),
                 dependency(LinkKind::ChainBackend, "bitcoin-core", BITCOIN_VERSIONS),
                 dependency(LinkKind::DatabaseBackend, "postgresql", &["17.11"]),
-                dependency(LinkKind::AuthenticationBackend, "keycloak", &["25.0.6"]),
+                dependency(
+                    LinkKind::AuthenticationBackend,
+                    "keycloak",
+                    &[KEYCLOAK_VERSION],
+                ),
             ],
             with_embedded_payment_bindings(
                 support_matrix(
@@ -704,24 +709,22 @@ fn build_catalog_with_spark(amd64: bool, spark_images: Option<&spark::Images>) -
             ),
             vec![ControlClass::Target],
         ),
-        catalog_entry(
+        keycloak_entry(
             amd64,
-            "keycloak",
             backends,
-            ComponentKind::IdentityProvider,
-            "Disposable OpenID Connect provider for NUT-21 authentication",
+            adapter_version,
+            KEYCLOAK_VERSION,
+            SupportLifecycle::Preferred,
+            "quay.io/keycloak/keycloak@sha256:c68e286cacd87b942ac1939a0a1481461109d6acd3a57dc496969a319a76bbf0",
+        ),
+        // Superseded family, kept for existing cell locks; new cells are refused it.
+        keycloak_entry(
+            amd64,
+            backends,
             adapter_version,
             "25.0.6",
-            ReleaseChannel::Stable,
+            SupportLifecycle::Deprecated,
             "quay.io/keycloak/keycloak@sha256:82c5b7a110456dbd42b86ea572e728878549954cc8bd03cd65410d75328095d2",
-            BTreeSet::from([CatalogFeature::OidcProvider]),
-            vec![dependency(
-                LinkKind::DatabaseBackend,
-                "postgresql",
-                &["17.11"],
-            )],
-            support_matrix(&[], &[], &[], &[], &[], &[], vec![]),
-            vec![ControlClass::Cell],
         ),
         redis_entry(
             amd64,
@@ -1011,7 +1014,7 @@ fn promote_component_releases(entries: &mut Vec<CatalogEntry>, amd64: bool) {
             entry.compatible_dependencies.push(dependency(
                 LinkKind::AuthenticationBackend,
                 "keycloak",
-                &["25.0.6"],
+                &[KEYCLOAK_VERSION],
             ));
         }
         let provenance: BuildProvenance =
@@ -1564,6 +1567,36 @@ fn lightning_entry(
             vec![],
         ),
         vec![ControlClass::Cell, ControlClass::Workspace],
+    )
+}
+
+fn keycloak_entry(
+    amd64: bool,
+    backends: &BackendContractRegistry,
+    adapter_version: &str,
+    version: &str,
+    support_lifecycle: SupportLifecycle,
+    image: &str,
+) -> CatalogEntry {
+    catalog_entry_with_lifecycle(
+        amd64,
+        "keycloak",
+        backends,
+        ComponentKind::IdentityProvider,
+        "Disposable OpenID Connect provider for NUT-21 authentication",
+        adapter_version,
+        version,
+        ReleaseChannel::Stable,
+        support_lifecycle,
+        image,
+        BTreeSet::from([CatalogFeature::OidcProvider]),
+        vec![dependency(
+            LinkKind::DatabaseBackend,
+            "postgresql",
+            &["17.11"],
+        )],
+        support_matrix(&[], &[], &[], &[], &[], &[], vec![]),
+        vec![ControlClass::Cell],
     )
 }
 
@@ -2628,7 +2661,7 @@ mod tests {
     )]
     fn catalog_support_summary_is_exact_and_invariants_fail_closed() {
         let catalog = catalog_for_platform(CatalogPlatform::LinuxArm64);
-        assert_eq!(catalog.entries.len(), 46);
+        assert_eq!(catalog.entries.len(), 47);
         assert_eq!(catalog.implementations.len(), 20);
         let lnd = catalog
             .implementations

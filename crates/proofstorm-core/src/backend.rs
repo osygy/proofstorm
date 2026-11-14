@@ -828,6 +828,13 @@ impl BackendContractRegistry {
                 execution_environment.insert("PROOFSTORM_NUTSHELL_VERSION".into(), release.into());
             }
         }
+        // Keycloak 26 renamed its bootstrap administrator settings.
+        if input.lock.catalog_id == "keycloak" {
+            execution_environment.insert(
+                "PROOFSTORM_KEYCLOAK_VERSION".into(),
+                input.lock.version.clone(),
+            );
+        }
         // A Spark federation runs one pod per operator; everything else runs one.
         let desired_replicas = match &effective_config {
             EffectiveComponentConfig::SparkOperators(config) => u16::try_from(config.operators)

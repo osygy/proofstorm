@@ -72,8 +72,10 @@
     },
     "execution_context": {
       "component_id": "identity",
-      "environment": {},
-      "image": "proofstorm-registry.localhost:5000/upstream/quay.io/keycloak/keycloak@sha256:82c5b7a110456dbd42b86ea572e728878549954cc8bd03cd65410d75328095d2",
+      "environment": {
+        "PROOFSTORM_KEYCLOAK_VERSION": "26.8.2"
+      },
+      "image": "proofstorm-registry.localhost:5000/upstream/quay.io/keycloak/keycloak@sha256:c68e286cacd87b942ac1939a0a1481461109d6acd3a57dc496969a319a76bbf0",
       "mounts": [],
       "state_contract": "proofstorm/keycloak-oidc-state/v1"
     },
@@ -154,7 +156,7 @@
       }
     ],
     "revision_digest": "sha256:b2-golden-revision",
-    "rollout_digest": "sha256:4b05e7d3b28e9378ee13482cd7e9152c5e46c0fcdad94f707990d56f960d0836",
+    "rollout_digest": "sha256:7c1272a2833dcdb5968b585189898109cd46dce5757f0e98c5ab2fdac8e07f50",
     "storage": [],
     "target_descriptor": {
       "backend_id": "keycloak",
@@ -163,7 +165,7 @@
       "ports": {
         "http": 8080
       },
-      "version": "25.0.6"
+      "version": "26.8.2"
     },
     "workload": {
       "desired_replicas": 1,
@@ -208,7 +210,7 @@
           "template": {
             "metadata": {
               "annotations": {
-                "proofstorm.dev/rollout-digest": "sha256:4b05e7d3b28e9378ee13482cd7e9152c5e46c0fcdad94f707990d56f960d0836"
+                "proofstorm.dev/rollout-digest": "sha256:7c1272a2833dcdb5968b585189898109cd46dce5757f0e98c5ab2fdac8e07f50"
               },
               "labels": {
                 "app.kubernetes.io/managed-by": "proofstormd",
@@ -276,7 +278,7 @@
                       "value": "-XX:InitialRAMPercentage=10 -XX:MaxRAMPercentage=45"
                     },
                     {
-                      "name": "KEYCLOAK_ADMIN",
+                      "name": "KC_BOOTSTRAP_ADMIN_USERNAME",
                       "value": "proofstorm-admin"
                     },
                     {
@@ -288,7 +290,7 @@
                       "value": "300"
                     },
                     {
-                      "name": "KEYCLOAK_ADMIN_PASSWORD",
+                      "name": "KC_BOOTSTRAP_ADMIN_PASSWORD",
                       "valueFrom": {
                         "secretKeyRef": {
                           "key": "KEYCLOAK_ADMIN_PASSWORD",
@@ -297,7 +299,7 @@
                       }
                     }
                   ],
-                  "image": "proofstorm-registry.localhost:5000/upstream/quay.io/keycloak/keycloak@sha256:82c5b7a110456dbd42b86ea572e728878549954cc8bd03cd65410d75328095d2",
+                  "image": "proofstorm-registry.localhost:5000/upstream/quay.io/keycloak/keycloak@sha256:c68e286cacd87b942ac1939a0a1481461109d6acd3a57dc496969a319a76bbf0",
                   "imagePullPolicy": "IfNotPresent",
                   "name": "component",
                   "ports": [

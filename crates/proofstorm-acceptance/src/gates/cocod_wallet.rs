@@ -37,8 +37,8 @@ pub(super) fn document() -> Value {
             {"id":"mint-lnd","kind":"lightning","implementation":"lnd","version": proofstorm_core::LND_VERSION,"config_version":"lnd/0.20/v1","control":"cell","config":{}},
             {"id":"payer-lnd","kind":"lightning","implementation":"lnd","version": proofstorm_core::LND_VERSION,"config_version":"lnd/0.20/v1","control":"cell","config":{}},
             {"id":"mint","kind":"mint","implementation":"cdk","version": proofstorm_core::CDK_VERSION,"config_version":"cdk-mintd/0.18/v1","control":"target","config":{"input_fee_ppk":0}},
-            {"id":"wallet-a","kind":"wallet","implementation":"cocod-wallet","version":"0.0.17-dev.44e5101c","config_version":"cocod-wallet/0.0.17/v1","control":"cell","config":{}},
-            {"id":"wallet-b","kind":"wallet","implementation":"cocod-wallet","version":"0.0.17-dev.44e5101c","config_version":"cocod-wallet/0.0.17/v1","control":"cell","config":{}}
+            {"id":"wallet-a","kind":"wallet","implementation":"cocod-wallet","version":"0.0.17-dev.8fd97f38","config_version":"cocod-wallet/0.0.17/v1","control":"cell","config":{}},
+            {"id":"wallet-b","kind":"wallet","implementation":"cocod-wallet","version":"0.0.17-dev.8fd97f38","config_version":"cocod-wallet/0.0.17/v1","control":"cell","config":{}}
         ],
         "links":[
             {"id":"mint-chain","kind":"chain_backend","from":"mint-lnd","to":"chain","binding":{"type":"chain","network":"regtest"}},
@@ -530,6 +530,12 @@ fn check_projection(receipt: &Value, exit: i64, selected: &Value) -> Result<()> 
     Ok(())
 }
 
+/// One workspace per gate variant: variants reuse request IDs, so sharing a
+/// workspace within one acceptance run turns their retries into conflicts.
+pub(super) fn workspace(context: &GateContext, variant: &str) -> String {
+    format!("{variant}-{}", context.run_id)
+}
+
 pub fn run(context: &GateContext) -> Result<()> {
     run_scoped(context, false, false, false)
 }
@@ -552,24 +558,22 @@ fn run_scoped(
     transfer: bool,
     handoff: bool,
 ) -> Result<()> {
+    let variant = if handoff {
+        "private-handoff"
+    } else if transfer {
+        "private-transfer"
+    } else if projection_only {
+        "cocod-projection"
+    } else {
+        "cocod-wallet"
+    };
     let directory = context
         .root
         .join("dev/wallet-integration-runs")
         .join(&context.run_id)
-        .join(if handoff {
-            "private-handoff"
-        } else if transfer {
-            "private-transfer"
-        } else if projection_only {
-            "cocod-projection"
-        } else {
-            "cocod-wallet"
-        });
+        .join(variant);
     fs::create_dir_all(&directory)?;
-    let mut client = context.default_session(
-        &format!("cocod-wallet-{}", context.run_id),
-        "experiment-agent",
-    )?;
+    let mut client = context.default_session(&workspace(context, variant), "experiment-agent")?;
     let mut document = document();
     if transfer {
         document["components"][5] = json!({"id":"wallet-b","kind":"wallet","implementation":"cdk-cli-wallet","version": proofstorm_core::CDK_VERSION,"config_version":"cdk-cli-wallet/0.18/v1","control":"cell","config":{}});
@@ -588,9 +592,7 @@ fn run_scoped(
     let published = crate::cell::review(&mut client, &preview)?;
     save(&directory, "published", &published)?;
     let lock = cell::lock_entry(&published, "cocod-wallet")?;
-    if lock.pointer("/build_provenance/commit_sha")
-        != Some(&json!("44e5101cbea370132af6e68f88e01b47e39431c4"))
-    {
+    if lock.pointer("/build_provenance/commit_sha") != Some(&json!(current_cocod_commit()?)) {
         bail!("cocod provenance lost from lock");
     }
     crate::cell::apply(&mut client, &preview)?;
@@ -654,4 +656,18 @@ fn run_scoped(
         directory.display()
     );
     Ok(())
+}
+
+/// The source commit of the cocod snapshot new cells select, from the catalog.
+fn current_cocod_commit() -> Result<String> {
+    proofstorm_core::default_catalog()
+        .entries
+        .iter()
+        .find(|entry| {
+            entry.id == "cocod-wallet"
+                && entry.support_lifecycle != proofstorm_core::SupportLifecycle::Deprecated
+        })
+        .and_then(|entry| entry.build_provenance.as_ref())
+        .map(|provenance| provenance.commit_sha.clone())
+        .ok_or_else(|| anyhow::anyhow!("catalog has no current cocod provenance"))
 }

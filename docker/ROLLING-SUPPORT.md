@@ -125,7 +125,7 @@ OIDC, CDK 0.18 mint/backend checks, and managed-cell acceptance remain separate
 qualification requirements.
 
 The workflow also builds `ldk-server@0.1.0-50fe752` and
-`cdk-ldk-server-processor@0.1.0-fe468ca` in separate jobs for each native
+`cdk-ldk-server-processor@0.1.0-d7244e2` in separate jobs for each native
 architecture. Their offline probes verify the node and CLI versions, or the
 processor executable and pinned source revision. These jobs retain build logs,
 image receipts, image inspection, and probe output, including on failure.

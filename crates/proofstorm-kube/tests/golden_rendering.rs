@@ -43,7 +43,7 @@ fn component(
         id: id.into(),
         kind,
         implementation: implementation.into(),
-        version: (implementation == "cocod-wallet").then(|| "0.0.17-dev.44e5101c".into()),
+        version: (implementation == "cocod-wallet").then(|| "0.0.17-dev.8fd97f38".into()),
         config_version: match implementation {
             "bitcoin-core" => "bitcoin-core/31/v1",
             "lnd" => "lnd/0.20/v1",

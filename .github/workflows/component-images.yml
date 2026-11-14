@@ -99,7 +99,7 @@ jobs:
         # native-spark-components.
         selection:
           - ldk-server@0.1.0-50fe752
-          - cdk-ldk-server-processor@0.1.0-fe468ca
+          - cdk-ldk-server-processor@0.1.0-d7244e2
         include:
           - arch: amd64
             runner: ubuntu-24.04

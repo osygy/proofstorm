@@ -33,19 +33,22 @@ fn claim(entry: &CatalogEntry, kind: &str, detail: &impl Serialize) -> String {
     format!("{}@{}:{kind}:{}", entry.id, entry.version, value(detail))
 }
 
+/// Entries qualification covers: supported releases and the current
+/// experimental stack pins. Deprecated entries exist only for saved locks.
 fn selected(entry: &CatalogEntry) -> bool {
     entry.support_lifecycle.is_supported()
-        || matches!(
-            entry.id.as_str(),
-            "ldk-server"
-                | "cdk-ldk-server-processor"
-                | "cdk-bark-processor"
-                | "bark-server"
-                | "cln-hold"
-                | "cdk-spark-processor"
-                | "open-ssp"
-                | "spark-operators"
-        )
+        || entry.support_lifecycle == SupportLifecycle::Experimental
+            && matches!(
+                entry.id.as_str(),
+                "ldk-server"
+                    | "cdk-ldk-server-processor"
+                    | "cdk-bark-processor"
+                    | "bark-server"
+                    | "cln-hold"
+                    | "cdk-spark-processor"
+                    | "open-ssp"
+                    | "spark-operators"
+            )
 }
 
 fn component(entry: &CatalogEntry) -> Result<Component> {

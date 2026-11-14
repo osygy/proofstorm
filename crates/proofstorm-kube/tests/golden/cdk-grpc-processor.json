@@ -150,7 +150,7 @@
         "ports": {
           "grpc": 50051
         },
-        "version": "0.1.0-fe468ca"
+        "version": "0.1.0-d7244e2"
       },
       "mint-bolt12": {
         "backend_id": "cdk-ldk-server-processor",
@@ -159,7 +159,7 @@
         "ports": {
           "grpc": 50051
         },
-        "version": "0.1.0-fe468ca"
+        "version": "0.1.0-d7244e2"
       }
     },
     "operation_admission": [

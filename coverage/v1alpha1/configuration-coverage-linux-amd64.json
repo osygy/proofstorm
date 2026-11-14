@@ -1,6 +1,6 @@
 {
   "api_version": "proofstorm/configuration-coverage/v1alpha1",
-  "catalog_digest": "sha256:0966bfd025703759a1b4c75b58a2db19445b2e97713a03aeb7fae00845e4f929",
+  "catalog_digest": "sha256:9b2117c1e44c1f2c038ede164288b3609409d2bbf3e5fbd7f74af4db4e6a1827",
   "entries": [
     {
       "implementation": "bark-server",
@@ -657,7 +657,7 @@
             "backend": {
               "implementation": "cdk-ldk-server-processor",
               "versions": [
-                "0.1.0-fe468ca"
+                "0.1.0-d7244e2"
               ]
             }
           },
@@ -701,7 +701,7 @@
             "backend": {
               "implementation": "cdk-ldk-server-processor",
               "versions": [
-                "0.1.0-fe468ca"
+                "0.1.0-d7244e2"
               ]
             }
           },
@@ -804,7 +804,7 @@
           "link_kind": "payment_backend",
           "implementation": "cdk-ldk-server-processor",
           "versions": [
-            "0.1.0-fe468ca"
+            "0.1.0-d7244e2"
           ]
         },
         {
@@ -1094,7 +1094,7 @@
             "backend": {
               "implementation": "cdk-ldk-server-processor",
               "versions": [
-                "0.1.0-fe468ca"
+                "0.1.0-d7244e2"
               ]
             }
           },
@@ -1138,7 +1138,7 @@
             "backend": {
               "implementation": "cdk-ldk-server-processor",
               "versions": [
-                "0.1.0-fe468ca"
+                "0.1.0-d7244e2"
               ]
             }
           },
@@ -1241,7 +1241,7 @@
           "link_kind": "payment_backend",
           "implementation": "cdk-ldk-server-processor",
           "versions": [
-            "0.1.0-fe468ca"
+            "0.1.0-d7244e2"
           ]
         },
         {
@@ -1552,9 +1552,94 @@
     {
       "implementation": "cdk-ldk-server-processor",
       "kind": "payment_processor",
-      "upstream_version": "0.1.0-fe468ca",
+      "upstream_version": "0.1.0-d7244e2",
       "release_channel": "prerelease",
       "support_lifecycle": "experimental",
+      "config_version": "cdk-ldk-server-processor/0.1/v1",
+      "config_schema_digest": "sha256:efcaa8d707f50197d3a6078bbbd59f57b3ac647c0b55be09061d1b53348aa87c",
+      "image": "proofstorm-registry.localhost:5000/cdk-ldk-server-processor@sha256:877f5009d620ea0d5dc738d5997e4556f8d43e33372e0593d6690bd8681c1b81",
+      "fields": {
+        "backend_endpoint": {
+          "classification": "topology_derived",
+          "required": true
+        },
+        "credentials": {
+          "classification": "generated_instance_secret",
+          "required": true
+        },
+        "fee_reserve_min_sat": {
+          "classification": "agent_authorable",
+          "required": true
+        },
+        "fee_reserve_percent": {
+          "classification": "agent_authorable",
+          "required": true
+        },
+        "max_payment_scan_pages": {
+          "classification": "agent_authorable",
+          "required": true
+        },
+        "network": {
+          "classification": "runtime_policy",
+          "required": true
+        }
+      },
+      "support": {
+        "storage": [
+          "ephemeral"
+        ],
+        "payment_methods": [
+          "bolt11",
+          "bolt12"
+        ],
+        "payment_backends": [
+          "ldk-server"
+        ],
+        "units": [
+          "msat",
+          "sat"
+        ],
+        "payment_bindings": [
+          {
+            "method": "bolt11",
+            "unit": "sat",
+            "backend": {
+              "implementation": "ldk-server",
+              "versions": [
+                "0.1.0-50fe752"
+              ]
+            }
+          },
+          {
+            "method": "bolt12",
+            "unit": "sat",
+            "backend": {
+              "implementation": "ldk-server",
+              "versions": [
+                "0.1.0-50fe752"
+              ]
+            }
+          }
+        ],
+        "authentication": [],
+        "compatible_wallet_adapters": []
+      },
+      "compatible_dependencies": [
+        {
+          "link_kind": "payment_backend",
+          "implementation": "ldk-server",
+          "versions": [
+            "0.1.0-50fe752"
+          ]
+        }
+      ]
+    },
+    {
+      "implementation": "cdk-ldk-server-processor",
+      "kind": "payment_processor",
+      "upstream_version": "0.1.0-fe468ca",
+      "release_channel": "prerelease",
+      "support_lifecycle": "deprecated",
       "config_version": "cdk-ldk-server-processor/0.1/v1",
       "config_schema_digest": "sha256:efcaa8d707f50197d3a6078bbbd59f57b3ac647c0b55be09061d1b53348aa87c",
       "image": "proofstorm-registry.localhost:5000/cdk-ldk-server-processor@sha256:1fcd8620a90f221432e960e29c46e5c11380ed661ff215d8acdad62ab42976c3",
@@ -2186,10 +2271,69 @@
       "kind": "wallet",
       "upstream_version": "0.0.17-dev.44e5101c",
       "release_channel": "prerelease",
-      "support_lifecycle": "experimental",
+      "support_lifecycle": "deprecated",
       "config_version": "cocod-wallet/0.0.17/v1",
       "config_schema_digest": "sha256:3dde4aa06c82c0f6da042c21478acf2c9cf3f2de849f68330904a95ce7701366",
       "image": "proofstorm-registry.localhost:5000/cocod-wallet@sha256:4c6dfadc79c08a2c2d535859ee750042a28e162c86c2cea788f2b50f7ce39187",
+      "fields": {
+        "client_credential": {
+          "classification": "generated_instance_secret",
+          "required": true
+        },
+        "daemon_process": {
+          "classification": "runtime_policy",
+          "required": true
+        },
+        "data_directory": {
+          "classification": "runtime_policy",
+          "required": true
+        },
+        "listener": {
+          "classification": "runtime_policy",
+          "required": true
+        },
+        "storage_size": {
+          "classification": "runtime_policy",
+          "required": true
+        },
+        "wallet_identity": {
+          "classification": "topology_derived",
+          "required": true
+        },
+        "wallet_seed": {
+          "classification": "generated_instance_secret",
+          "required": true
+        }
+      },
+      "support": {
+        "storage": [
+          "persistent_volume",
+          "sqlite"
+        ],
+        "payment_methods": [
+          "bolt11"
+        ],
+        "payment_backends": [],
+        "units": [
+          "sat"
+        ],
+        "payment_bindings": [],
+        "authentication": [
+          "unauthenticated"
+        ],
+        "compatible_wallet_adapters": []
+      },
+      "compatible_dependencies": []
+    },
+    {
+      "implementation": "cocod-wallet",
+      "kind": "wallet",
+      "upstream_version": "0.0.17-dev.8fd97f38",
+      "release_channel": "prerelease",
+      "support_lifecycle": "experimental",
+      "config_version": "cocod-wallet/0.0.17/v1",
+      "config_schema_digest": "sha256:3dde4aa06c82c0f6da042c21478acf2c9cf3f2de849f68330904a95ce7701366",
+      "image": "proofstorm-registry.localhost:5000/cocod-wallet@sha256:8cc888e0a1fd96cf3a72916303d5d967b1b536cd9136f5221fcacfb02b767b25",
       "fields": {
         "client_credential": {
           "classification": "generated_instance_secret",

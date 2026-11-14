@@ -33,7 +33,7 @@
       "id": "processor",
       "kind": "payment_processor",
       "implementation": "cdk-ldk-server-processor",
-      "version": "0.1.0-fe468ca",
+      "version": "0.1.0-d7244e2",
       "config_version": "cdk-ldk-server-processor/0.1/v1",
       "control": "target",
       "config": {}

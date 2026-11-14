@@ -92,7 +92,7 @@
     "execution_context": {
       "component_id": "processor",
       "environment": {},
-      "image": "proofstorm-registry.localhost:5000/cdk-ldk-server-processor@sha256:1fcd8620a90f221432e960e29c46e5c11380ed661ff215d8acdad62ab42976c3",
+      "image": "proofstorm-registry.localhost:5000/cdk-ldk-server-processor@sha256:877f5009d620ea0d5dc738d5997e4556f8d43e33372e0593d6690bd8681c1b81",
       "mounts": [
         {
           "mount_path": "/ldk-server",
@@ -205,7 +205,7 @@
       }
     ],
     "revision_digest": "sha256:b2-golden-revision",
-    "rollout_digest": "sha256:5560ac3739583fb422543b9f013e0d7a506494a856ade28897eaa10578bccf85",
+    "rollout_digest": "sha256:62eed9992f60166cc1ac03770c009ce84f5e0eb301bb5654702924b6bc429b5d",
     "storage": [],
     "target_descriptor": {
       "backend_id": "cdk-ldk-server-processor",
@@ -214,7 +214,7 @@
       "ports": {
         "grpc": 50051
       },
-      "version": "0.1.0-fe468ca"
+      "version": "0.1.0-d7244e2"
     },
     "workload": {
       "desired_replicas": 1,
@@ -259,7 +259,7 @@
           "template": {
             "metadata": {
               "annotations": {
-                "proofstorm.dev/rollout-digest": "sha256:5560ac3739583fb422543b9f013e0d7a506494a856ade28897eaa10578bccf85"
+                "proofstorm.dev/rollout-digest": "sha256:62eed9992f60166cc1ac03770c009ce84f5e0eb301bb5654702924b6bc429b5d"
               },
               "labels": {
                 "app.kubernetes.io/managed-by": "proofstormd",
@@ -330,7 +330,7 @@
                       "value": "/processor-server/tls/server.key"
                     }
                   ],
-                  "image": "proofstorm-registry.localhost:5000/cdk-ldk-server-processor@sha256:1fcd8620a90f221432e960e29c46e5c11380ed661ff215d8acdad62ab42976c3",
+                  "image": "proofstorm-registry.localhost:5000/cdk-ldk-server-processor@sha256:877f5009d620ea0d5dc738d5997e4556f8d43e33372e0593d6690bd8681c1b81",
                   "imagePullPolicy": "IfNotPresent",
                   "name": "component",
                   "ports": [
@@ -434,7 +434,7 @@
                     "-ec",
                     "for attempt in $(seq 1 120); do if test -s /ldk-server/regtest/api_key && test -s /ldk-server/tls.crt && /opt/proofstorm/driver tcp ldk 3536; then exit 0; fi; sleep 1; done; echo 'LDK Server dependency did not become ready' >&2; exit 1"
                   ],
-                  "image": "proofstorm-registry.localhost:5000/cdk-ldk-server-processor@sha256:1fcd8620a90f221432e960e29c46e5c11380ed661ff215d8acdad62ab42976c3",
+                  "image": "proofstorm-registry.localhost:5000/cdk-ldk-server-processor@sha256:877f5009d620ea0d5dc738d5997e4556f8d43e33372e0593d6690bd8681c1b81",
                   "name": "wait-for-ldk-server",
                   "securityContext": {
                     "allowPrivilegeEscalation": false,

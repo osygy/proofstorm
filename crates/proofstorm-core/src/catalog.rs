@@ -804,7 +804,7 @@ fn build_catalog_with_spark(amd64: bool, spark_images: Option<&spark::Images>) -
             vec![ControlClass::Cell, ControlClass::Workspace],
         ),
         cdk_cli_wallet_entry(amd64, backends, adapter_version),
-        cocod_wallet_entry(amd64, backends, adapter_version),
+        cocod_wallet_entry(amd64, backends, adapter_version, &COCOD_CURRENT),
         catalog_entry(
             amd64,
             "workspace",
@@ -829,6 +829,11 @@ fn build_catalog_with_spark(amd64: bool, spark_images: Option<&spark::Images>) -
             vec![ControlClass::Workspace],
         ),
     ];
+    entries.push(superseded_cocod_wallet_entry(
+        amd64,
+        backends,
+        adapter_version,
+    ));
     for entry in &mut entries {
         if matches!(entry.id.as_str(), "nutshell" | "nutshell-wallet") {
             entry.features.insert(CatalogFeature::NativeCliEntrypoints);
@@ -1732,24 +1737,60 @@ fn cdk_cli_wallet_entry(
     entry
 }
 
-fn cocod_wallet_entry(
+/// One reviewed snapshot of the unreleased cocod daemon.
+struct CocodSnapshot {
+    commit: &'static str,
+    version: &'static str,
+    observations: &'static str,
+    builds: fn(bool) -> (&'static str, &'static str),
+}
+
+/// The current cocod snapshot, offered to new cells.
+const COCOD_CURRENT: CocodSnapshot = CocodSnapshot {
+    commit: "8fd97f38",
+    version: "0.0.17-dev.8fd97f38",
+    observations: "cocod/8fd97f38/observations/v1",
+    builds: crate::wallet_builds::cocod_8fd97f38,
+};
+/// The superseded snapshot, kept for existing cell locks.
+const COCOD_44E5101C: CocodSnapshot = CocodSnapshot {
+    commit: "44e5101c",
+    version: "0.0.17-dev.44e5101c",
+    observations: "cocod/44e5101c/observations/v1",
+    builds: crate::wallet_builds::cocod,
+};
+
+/// The superseded cocod snapshot as a deprecated entry.
+fn superseded_cocod_wallet_entry(
     amd64: bool,
     backends: &BackendContractRegistry,
     adapter_version: &str,
 ) -> CatalogEntry {
-    let (image, encoded) = crate::wallet_builds::cocod(amd64);
+    let mut entry = cocod_wallet_entry(amd64, backends, adapter_version, &COCOD_44E5101C);
+    entry.support_lifecycle = SupportLifecycle::Deprecated;
+    entry
+}
+
+fn cocod_wallet_entry(
+    amd64: bool,
+    backends: &BackendContractRegistry,
+    adapter_version: &str,
+    snapshot: &CocodSnapshot,
+) -> CatalogEntry {
+    let (image, encoded) = (snapshot.builds)(amd64);
+    let platform = if amd64 { "amd64" } else { "arm64" };
+    let description = format!(
+        "Unreleased cocod daemon from Coco {}; experimental Linux {platform} cell build",
+        snapshot.commit
+    );
     let mut entry = catalog_entry(
         amd64,
         "cocod-wallet",
         backends,
         ComponentKind::Wallet,
-        if amd64 {
-            "Unreleased cocod daemon from Coco 44e5101c; experimental Linux amd64 cell build"
-        } else {
-            "Unreleased cocod daemon from Coco 44e5101c; experimental Linux arm64 cell build"
-        },
+        &description,
         adapter_version,
-        "0.0.17-dev.44e5101c",
+        snapshot.version,
         ReleaseChannel::Prerelease,
         image,
         BTreeSet::from([
@@ -1771,7 +1812,7 @@ fn cocod_wallet_entry(
         vec![ControlClass::Cell, ControlClass::Workspace],
     );
     entry.support_lifecycle = SupportLifecycle::Experimental;
-    entry.protocol_action_adapter_version = Some("cocod/44e5101c/observations/v1".into());
+    entry.protocol_action_adapter_version = Some(snapshot.observations.into());
     let provenance: BuildProvenance =
         serde_json::from_str(encoded).expect("pinned wallet build provenance");
     entry.source_digest = crate::digest_json(&(&entry.source_digest, &provenance));
@@ -2547,7 +2588,10 @@ mod tests {
         let entry = default_catalog()
             .entries
             .iter()
-            .find(|entry| entry.id == "cocod-wallet")
+            .find(|entry| {
+                entry.id == "cocod-wallet"
+                    && entry.support_lifecycle == SupportLifecycle::Experimental
+            })
             .expect("cocod wallet");
         let provenance = entry.build_provenance.as_ref().expect("source provenance");
         assert_eq!(
@@ -2555,18 +2599,18 @@ mod tests {
             format!(
                 "sha256:{:x}",
                 Sha256::digest(include_bytes!(
-                    "../../../docker/wallet/Dockerfile.kube-cocod"
+                    "../../../docker/wallet/Dockerfile.cocod-8fd97f38"
                 ))
             )
         );
         assert_eq!(
             provenance.commit_sha,
-            "44e5101cbea370132af6e68f88e01b47e39431c4"
+            "8fd97f3857a744a9f053a0886d71c5f31c38f70f"
         );
         assert_eq!(provenance.package_path.as_deref(), Some("packages/cocod"));
         assert_eq!(
             provenance.dependency_lock_digest.as_deref(),
-            Some("sha256:8c6bc502e3fa1178e3efbb56f86ef8a92d1e9612952a3f8d7268e2de7e611055")
+            Some("sha256:5bf5a544c6184714c5a80d8bfd3b3c246b438a62b4748f72c0be677af19eaafb")
         );
         assert_eq!(entry.support_lifecycle, SupportLifecycle::Experimental);
         let controls = &entry.runtime_endpoints[0].controls;
@@ -2584,7 +2628,7 @@ mod tests {
     )]
     fn catalog_support_summary_is_exact_and_invariants_fail_closed() {
         let catalog = catalog_for_platform(CatalogPlatform::LinuxArm64);
-        assert_eq!(catalog.entries.len(), 44);
+        assert_eq!(catalog.entries.len(), 46);
         assert_eq!(catalog.implementations.len(), 20);
         let lnd = catalog
             .implementations

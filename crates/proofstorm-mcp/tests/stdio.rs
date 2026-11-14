@@ -153,7 +153,7 @@ fn stdio_default_developer_discovery_respects_unconfigured_authority() {
         let structured = catalog
             .pointer("/result/structuredContent")
             .expect("structured content");
-        assert_eq!(structured["matched_count"], 24);
+        assert_eq!(structured["matched_count"], 29);
         let items = expect::array(structured, "/items").expect("catalog items");
         assert!(!items.is_empty());
         for item in items {
@@ -168,7 +168,7 @@ fn stdio_default_developer_discovery_respects_unconfigured_authority() {
             break;
         }
     }
-    assert_eq!(identities.len(), 24);
+    assert_eq!(identities.len(), 29);
     for (id, version) in [
         ("cdk-bark-processor", "0.1.0-fe468ca"),
         ("bark-server", "0.7.0-6188e2d"),
@@ -237,7 +237,7 @@ fn recorded_search_and_selected_reads_work_over_offline_stdio() {
     let spec = serde_json::from_value(json!({
         "api_version":"proofstorm/v1alpha1", "name":"search-demo", "links":[],
         "components":[{"id":"chain","kind":"bitcoin","implementation":"bitcoin-core",
-            "version":"31.1","config_version":"bitcoin-core/31/v1","control":"cell","config":{}}]
+            "version":"31.2","config_version":"bitcoin-core/31/v1","control":"cell","config":{}}]
     }))
     .unwrap();
     store

@@ -68,7 +68,7 @@
       "execution_context": {
         "component_id": "cache",
         "environment": {},
-        "image": "proofstorm-registry.localhost:5000/upstream/docker.io/library/redis@sha256:2c2dff791878316e3b083188be0d578423b24813cdda5de0e80ea4f7b3e6bfd6",
+        "image": "proofstorm-registry.localhost:5000/upstream/docker.io/library/redis@sha256:1f88291b4c57bdf249f02eb085a8669889b2d2954e91d4de5118a5da6b78dd53",
         "mounts": [],
         "state_contract": "proofstorm/redis-cache-state/v1"
       },
@@ -127,7 +127,7 @@
       },
       "relevant_links": [],
       "revision_digest": "sha256:b2-golden-revision",
-      "rollout_digest": "sha256:a7841e99bd280823d8aa62f93c577af803ae6382273024d8f24c2a3aa413f892",
+      "rollout_digest": "sha256:544fc51343b085a8097252e108ba40399b8eb0f5c7bc192b2b0d906477c2de9e",
       "storage": [],
       "target_descriptor": {
         "backend_id": "redis",
@@ -136,7 +136,7 @@
         "ports": {
           "redis": 6379
         },
-        "version": "8.10.2"
+        "version": "8.10.3"
       },
       "workload": {
         "desired_replicas": 1,
@@ -213,6 +213,7 @@
       "effective_config": {
         "config": {
           "fallback_fee": 0.0002,
+          "rpc_max_connections": 0,
           "txindex": true
         },
         "implementation": "bitcoin-core"
@@ -222,7 +223,7 @@
         "environment": {
           "HOME": "/home/bitcoin"
         },
-        "image": "proofstorm-registry.localhost:5000/bitcoin-core@sha256:b3faffac8d3414faf57df61889c354d15fb2851782c2002251ea8df5be358ad6",
+        "image": "proofstorm-registry.localhost:5000/bitcoin-core@sha256:cfec5b592dfea4af2b3e715649c95ca07885d219b651e4a7844ba52750deb331",
         "mounts": [
           {
             "mount_path": "/home/bitcoin/.bitcoin",
@@ -290,7 +291,7 @@
       },
       "relevant_links": [],
       "revision_digest": "sha256:b2-golden-revision",
-      "rollout_digest": "sha256:b6806f3bbe1134cecfc9f6686e7c393babbbe36f0ce925109d8b2556566e04ec",
+      "rollout_digest": "sha256:1113fac6b43e71211cd4a1b52d96c8258cf8132cd9f9dad8dc65d938eb28e561",
       "storage": [
         {
           "claim_name": "data-chain-0"
@@ -306,7 +307,7 @@
           "zmq_block": 28334,
           "zmq_tx": 28335
         },
-        "version": "31.1"
+        "version": "32.1"
       },
       "workload": {
         "desired_replicas": 1,
@@ -564,7 +565,7 @@
         "environment": {
           "HOME": "/home/lnd"
         },
-        "image": "proofstorm-registry.localhost:5000/upstream/docker.io/lightninglabs/lnd@sha256:04d06edcc0f6e99a5e797ea34959f330add222226f840cd86afbc31f8f29627d",
+        "image": "proofstorm-registry.localhost:5000/upstream/docker.io/lightninglabs/lnd@sha256:f17b2944b1b76396cccbe58feac469b6cefb5f407557ac77f0880f136fb935f9",
         "mounts": [
           {
             "mount_path": "/home/lnd/.lnd",
@@ -590,7 +591,7 @@
             "zmq_block": 28334,
             "zmq_tx": 28335
           },
-          "version": "31.1"
+          "version": "32.1"
         }
       },
       "operation_admission": [
@@ -656,7 +657,7 @@
         }
       ],
       "revision_digest": "sha256:b2-golden-revision",
-      "rollout_digest": "sha256:45333e7954cae96e4f70473861c27a3967716e3fcaae88cf5fd7bd479ecc7b39",
+      "rollout_digest": "sha256:765be71e588f82a9854d80535cb280381e7d6c5735e776b4e6c32041d175c85c",
       "storage": [
         {
           "claim_name": "data-lightning-0"
@@ -671,7 +672,7 @@
           "rest": 8080,
           "rpc": 10009
         },
-        "version": "0.21.4-beta"
+        "version": "0.21.8-beta"
       },
       "workload": {
         "desired_replicas": 1,
@@ -816,9 +817,9 @@
         "environment": {
           "CASHU_DIR": "/app/data",
           "HOME": "/app/data",
-          "PROOFSTORM_NUTSHELL_VERSION": "0.21.0"
+          "PROOFSTORM_NUTSHELL_VERSION": "0.22.1"
         },
-        "image": "proofstorm-registry.localhost:5000/nutshell-mint@sha256:f0c0e8a710e519774b0880841aac6c128471260cbc51da6306cfe60e9b08deda",
+        "image": "proofstorm-registry.localhost:5000/nutshell-mint@sha256:3e2fe1a1f5569d38e545dddff890066899cc289cd8cc86c36b3e4584542f2576",
         "mounts": [
           {
             "mount_path": "/app/data",
@@ -850,7 +851,7 @@
           "ports": {
             "redis": 6379
           },
-          "version": "8.10.2"
+          "version": "8.10.3"
         },
         "mint-database-database": {
           "backend_id": "postgresql",
@@ -870,7 +871,7 @@
             "rest": 8080,
             "rpc": 10009
           },
-          "version": "0.21.4-beta"
+          "version": "0.21.8-beta"
         }
       },
       "operation_admission": [
@@ -957,7 +958,7 @@
         }
       ],
       "revision_digest": "sha256:b2-golden-revision",
-      "rollout_digest": "sha256:5837634f5f1205fbb3787326103ba29b4f8fc8fd820a35a35a1b22691306959b",
+      "rollout_digest": "sha256:e54b832bf724e447518cd76d22bffaef94860a7125c5fdd4e963255102adb075",
       "storage": [
         {
           "claim_name": "mint-data"
@@ -970,7 +971,7 @@
         "ports": {
           "http": 3338
         },
-        "version": "0.21.0"
+        "version": "0.22.1"
       },
       "workload": {
         "desired_replicas": 1,
@@ -1040,7 +1041,7 @@
           "MINT_WATCHDOG_BALANCE_CHECK_INTERVAL_SECONDS": "60",
           "MINT_WATCHDOG_ENABLED": "FALSE",
           "MINT_WEBSOCKET_READ_TIMEOUT": "600",
-          "PROOFSTORM_NUTSHELL_VERSION": "0.21.0",
+          "PROOFSTORM_NUTSHELL_VERSION": "0.22.1",
           "TOR": "FALSE"
         },
         "kind": "ConfigMap",
@@ -1088,7 +1089,7 @@
           "template": {
             "metadata": {
               "annotations": {
-                "proofstorm.dev/rollout-digest": "sha256:a7841e99bd280823d8aa62f93c577af803ae6382273024d8f24c2a3aa413f892"
+                "proofstorm.dev/rollout-digest": "sha256:544fc51343b085a8097252e108ba40399b8eb0f5c7bc192b2b0d906477c2de9e"
               },
               "labels": {
                 "app.kubernetes.io/managed-by": "proofstormd",
@@ -1119,7 +1120,7 @@
                       }
                     }
                   ],
-                  "image": "proofstorm-registry.localhost:5000/upstream/docker.io/library/redis@sha256:2c2dff791878316e3b083188be0d578423b24813cdda5de0e80ea4f7b3e6bfd6",
+                  "image": "proofstorm-registry.localhost:5000/upstream/docker.io/library/redis@sha256:1f88291b4c57bdf249f02eb085a8669889b2d2954e91d4de5118a5da6b78dd53",
                   "imagePullPolicy": "IfNotPresent",
                   "name": "component",
                   "ports": [
@@ -1212,7 +1213,7 @@
           "template": {
             "metadata": {
               "annotations": {
-                "proofstorm.dev/rollout-digest": "sha256:5837634f5f1205fbb3787326103ba29b4f8fc8fd820a35a35a1b22691306959b"
+                "proofstorm.dev/rollout-digest": "sha256:e54b832bf724e447518cd76d22bffaef94860a7125c5fdd4e963255102adb075"
               },
               "labels": {
                 "app.kubernetes.io/managed-by": "proofstormd",
@@ -1268,7 +1269,7 @@
                       }
                     }
                   ],
-                  "image": "proofstorm-registry.localhost:5000/nutshell-mint@sha256:f0c0e8a710e519774b0880841aac6c128471260cbc51da6306cfe60e9b08deda",
+                  "image": "proofstorm-registry.localhost:5000/nutshell-mint@sha256:3e2fe1a1f5569d38e545dddff890066899cc289cd8cc86c36b3e4584542f2576",
                   "imagePullPolicy": "IfNotPresent",
                   "name": "component",
                   "ports": [
@@ -2011,7 +2012,7 @@
           "template": {
             "metadata": {
               "annotations": {
-                "proofstorm.dev/rollout-digest": "sha256:b6806f3bbe1134cecfc9f6686e7c393babbbe36f0ce925109d8b2556566e04ec"
+                "proofstorm.dev/rollout-digest": "sha256:1113fac6b43e71211cd4a1b52d96c8258cf8132cd9f9dad8dc65d938eb28e561"
               },
               "labels": {
                 "app.kubernetes.io/managed-by": "proofstormd",
@@ -2042,7 +2043,7 @@
                   "command": [
                     "bitcoind"
                   ],
-                  "image": "proofstorm-registry.localhost:5000/bitcoin-core@sha256:b3faffac8d3414faf57df61889c354d15fb2851782c2002251ea8df5be358ad6",
+                  "image": "proofstorm-registry.localhost:5000/bitcoin-core@sha256:cfec5b592dfea4af2b3e715649c95ca07885d219b651e4a7844ba52750deb331",
                   "imagePullPolicy": "IfNotPresent",
                   "name": "component",
                   "readinessProbe": {
@@ -2340,7 +2341,7 @@
           "template": {
             "metadata": {
               "annotations": {
-                "proofstorm.dev/rollout-digest": "sha256:45333e7954cae96e4f70473861c27a3967716e3fcaae88cf5fd7bd479ecc7b39"
+                "proofstorm.dev/rollout-digest": "sha256:765be71e588f82a9854d80535cb280381e7d6c5735e776b4e6c32041d175c85c"
               },
               "labels": {
                 "app.kubernetes.io/managed-by": "proofstormd",
@@ -2376,7 +2377,7 @@
                   "command": [
                     "lnd"
                   ],
-                  "image": "proofstorm-registry.localhost:5000/upstream/docker.io/lightninglabs/lnd@sha256:04d06edcc0f6e99a5e797ea34959f330add222226f840cd86afbc31f8f29627d",
+                  "image": "proofstorm-registry.localhost:5000/upstream/docker.io/lightninglabs/lnd@sha256:f17b2944b1b76396cccbe58feac469b6cefb5f407557ac77f0880f136fb935f9",
                   "imagePullPolicy": "IfNotPresent",
                   "name": "component",
                   "readinessProbe": {

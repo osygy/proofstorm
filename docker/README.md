@@ -4,16 +4,26 @@ The Rust component catalog is the authority for supported versions and immutable
 runtime image digests. Every built-in catalog image is served by the local
 Proofstorm registry. `storm setup` prepares the installation; cell creation
 downloads the selected images on demand, preserving their exact digests.
-The `upstream/<registry>/<repository>` path records their original source.
+`storm setup --prefetch-all` downloads every image a new cell can select;
+deprecated entries kept for saved locks still download on demand.
+
+Third-party images (LND, Core Lightning, Redis, PostgreSQL, BusyBox, Keycloak and
+the candidate-build git and BuildKit helpers) are never pulled from Docker Hub or
+Quay at runtime. Each pinned digest is mirrored once into
+`ghcr.io/osygy/proofstorm/upstream`, and installs, cells, e2e and CI download it
+from there, so anonymous registry rate limits cannot break them. The
+`upstream/<registry>/<repository>` in-cluster path records each image's original
+source, and [the mirror receipt](../release/upstream-mirror.json) lists every
+origin with its anonymous verification on both platforms.
 
 | Component | Source |
 | --- | --- |
-| Bitcoin Core 31.1 | Proofstorm packaging of verified bitcoincore.org release binaries |
-| LND 0.21.4-beta (preferred), 0.20.5-beta | docker.io/lightninglabs/lnd |
+| Bitcoin Core 32.1 (preferred), 31.2, 30.4 | Proofstorm packaging of verified bitcoincore.org release binaries |
+| LND 0.21.8-beta (preferred), 0.20.8-beta, 0.19.3-beta | docker.io/lightninglabs/lnd |
 | Core Lightning | docker.io/elementsproject/lightningd |
 | CDK and Nutshell | docker.io/cashubtc images, with the existing management-client wrappers |
 | LDK Server and CDK LDK Server processor | Pinned upstream source builds; see [payment processor packaging](payment/README.md) |
-| Keycloak | quay.io/keycloak/keycloak |
+| Keycloak 26.8.2 (25.0.6 deprecated) | quay.io/keycloak/keycloak |
 | PostgreSQL, Redis | Docker Official Images under docker.io/library |
 | BusyBox | Unmodified Docker Official Image from docker.io/library/busybox |
 | Cocod | Frozen source and dependency lock in its wallet provenance record |
@@ -26,8 +36,9 @@ without creating a cluster.
 
 ## Bitcoin packaging
 
-`bitcoin/Dockerfile` downloads unmodified Bitcoin Core 31.1 release binaries
-for Linux amd64 and arm64. It checks the pinned SHA-256 of the release checksum
+`bitcoin/Dockerfile.<version>` (32.1, 31.2, 30.4) downloads unmodified Bitcoin
+Core release binaries for Linux amd64 and arm64 (`bitcoin/Dockerfile` is the
+retained 31.1 recipe). It checks the pinned SHA-256 of the release checksum
 document, requires a valid Michael Ford signature with pinned primary and signing
 key fingerprints, and verifies each architecture's archive against that signed
 document. The signer key is fetched from an immutable bitcoin-core/guix.sigs
@@ -52,10 +63,10 @@ reviewed recipes; it does not change versions, catalog pins, or provenance.
 ```sh
 just catalog-image list
 scratch="$(mktemp -d)"
-just catalog-image build cdk-cli-wallet@0.18.2 linux/arm64 "$scratch/wallet"
+just catalog-image build cdk-cli-wallet@0.18.3 linux/arm64 "$scratch/wallet"
 # Inspect image.json and probe.stdout before authorizing a push:
 just catalog-image publish "$scratch/wallet" \
-  --confirm-namespace ghcr.io/orangeshyguy21/proofstorm
+  --confirm-namespace ghcr.io/osygy/proofstorm
 ```
 
 Select `linux/amd64` or `linux/arm64` explicitly. Buildx must support that platform
@@ -92,7 +103,7 @@ To copy an existing reviewed image instead of rebuilding it:
 just catalog-image prepare-copy \
   '127.0.0.1:PORT/cdk-cli-wallet@sha256:DIGEST' linux/amd64 "$scratch/copy"
 just catalog-image publish "$scratch/copy" \
-  --confirm-namespace ghcr.io/orangeshyguy21/proofstorm
+  --confirm-namespace ghcr.io/osygy/proofstorm
 ```
 
 Replace `PORT` and `DIGEST` with the explicit source registry and reviewed digest;
@@ -121,7 +132,7 @@ For an independent anonymous check:
 
 ```sh
 just catalog-image verify \
-  'ghcr.io/orangeshyguy21/proofstorm/cdk-cli-wallet@sha256:DIGEST' \
+  'ghcr.io/osygy/proofstorm/cdk-cli-wallet@sha256:DIGEST' \
   linux/amd64 "$scratch/verification.json"
 ```
 
@@ -133,7 +144,11 @@ rebuild is not a substitute for a missing approved artifact during installation.
 ## Updating a component
 
 Use a project-published image when available; otherwise package verified official
-release artifacts and retain provenance. Pin the multi-architecture digest,
+release artifacts and retain provenance. A new third-party pin must be mirrored
+before it ships: `just upstream-mirror publish` copies every missing digest (using
+your Docker login once), then `just upstream-mirror verify NEW_EXTERNAL_WORK`
+checks each digest anonymously and rewrites the receipt. A test fails while any
+catalog or helper image is missing from it. Pin the multi-architecture digest,
 validate native commands and data paths under the restricted runtime, update
 catalog compatibility declarations and examples, regenerate coverage and render
 fixtures, and run the affected live gates. Keep application version updates

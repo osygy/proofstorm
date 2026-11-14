@@ -26,7 +26,7 @@ fn verify_version(env: &BTreeMap<String, String>, version: &str) -> Result<()> {
         .get("PROOFSTORM_NUTSHELL_VERSION")
         .map_or("0.20.3", String::as_str);
     ensure!(
-        matches!(expected, "0.20.3" | "0.21.0"),
+        matches!(expected, "0.20.3" | "0.21.0" | "0.22.1"),
         "unsupported mint contract"
     );
     ensure!(
@@ -190,6 +190,9 @@ mod version_tests {
         env.insert("PROOFSTORM_NUTSHELL_VERSION".into(), "0.21.0".into());
         assert!(verify_version(&env, "0.21.0").is_ok());
         assert!(verify_version(&env, "0.20.3").is_err());
+        env.insert("PROOFSTORM_NUTSHELL_VERSION".into(), "0.22.1".into());
+        assert!(verify_version(&env, "0.22.1").is_ok());
+        assert!(verify_version(&env, "0.21.0").is_err());
         env.insert("PROOFSTORM_NUTSHELL_VERSION".into(), "0.22.0".into());
         assert!(verify_version(&env, "0.22.0").is_err());
     }

@@ -103,8 +103,14 @@ fn coco_preserves_transactions_and_refuses_future_schema_or_noncanonical_amounts
     assert_eq!(read().unwrap()["reserved_sat"], 32);
     db.execute_batch("COMMIT").unwrap();
     assert_eq!(read().unwrap()["reserved_sat"], 33);
+    assert_eq!(
+        value["observation_source"],
+        "cocod/44e5101c/sqlite-read-transaction/v1"
+    );
     for (state, amount) in [
         ("unknown", "1"),
+        // Mint-held proofs exist only from migration 043 onwards.
+        ("pending", "1"),
         ("ready", "-1"),
         ("ready", "1.5"),
         ("ready", "18446744073709551616"),
@@ -135,6 +141,44 @@ fn coco_preserves_transactions_and_refuses_future_schema_or_noncanonical_amounts
     let missing = directory.path().join("missing.db");
     assert!(wallet::coco(&missing, "wallet", "mint", MINT).is_err());
     assert!(!missing.exists());
+}
+
+#[test]
+fn coco_reads_the_8fd97f38_schema_and_counts_mint_held_proofs_as_inflight() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("coco.db");
+    let db = Connection::open(&path).unwrap();
+    db.execute_batch("PRAGMA journal_mode=WAL;
+        CREATE TABLE coco_cashu_proofs(mintUrl TEXT,unit TEXT,state TEXT,amount TEXT,usedByOperationId TEXT,secret TEXT);
+        CREATE TABLE coco_cashu_mints(mintUrl TEXT); INSERT INTO coco_cashu_mints VALUES('http://mint:3338');
+        CREATE TABLE coco_cashu_migrations(id TEXT);
+        INSERT INTO coco_cashu_migrations VALUES('038_keypair_derivation_allocations'),('043_pending_proofs'),('046_keyset_final_expiry')").unwrap();
+    for (state, amount, owner) in [
+        ("ready", "64", None),
+        ("ready", "32", Some("operation")),
+        ("inflight", "16", None),
+        ("pending", "8", None),
+        ("spent", "128", None),
+    ] {
+        db.execute(
+            "INSERT INTO coco_cashu_proofs VALUES(?1,'sat',?2,?3,?4,'private-proof-canary')",
+            params![MINT, state, amount, owner],
+        )
+        .unwrap();
+    }
+    let read = || wallet::coco(&path, "wallet", "mint", MINT);
+    let value = read().unwrap();
+    assert_eq!(value["balance_sat"], 64);
+    assert_eq!(value["reserved_sat"], 32);
+    assert_eq!(value["inflight_sat"], 24);
+    assert_eq!(value["total_ready_sat"], 96);
+    assert_eq!(
+        value["observation_source"],
+        "cocod/8fd97f38/sqlite-read-transaction/v1"
+    );
+    db.execute_batch("INSERT INTO coco_cashu_migrations VALUES('047_unknown')")
+        .unwrap();
+    assert!(read().is_err());
 }
 
 #[test]

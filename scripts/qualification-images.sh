@@ -77,7 +77,10 @@ if [[ "$kind" == image ]]; then
         probe='ldk-server --version && ldk-server-cli --version'; expected=$(printf 'ldk-server 0.1.0\nldk-server-cli 0.1.0')
       fi
       ;;
-    cdk-ldk-server-processor) probe='test -x /usr/local/bin/cdk-payment-processor-ldk-server && cat /usr/local/share/processor-revision'; expected=fe468cad486157683eddbc0df4ff87ba71b6c0a3 ;;
+    cdk-ldk-server-processor)
+      probe='test -x /usr/local/bin/cdk-payment-processor-ldk-server && cat /usr/local/share/processor-revision'
+      if [[ "$version" == 0.1.0-fe468ca ]]; then expected=fe468cad486157683eddbc0df4ff87ba71b6c0a3; else expected=d7244e261506b51d5b309a558bf19cd4ffc32f13; fi
+      ;;
     cdk-bark-processor)
       probe='test -x /usr/local/bin/cdk-payment-processor-bark && cat /usr/local/share/processor-revision /usr/local/share/processor-patch-sha256'
       expected=$(printf '%s\n%s' fe468cad486157683eddbc0df4ff87ba71b6c0a3 abc3f967d754cdf5e484bf434ef52fa216dfb37cdcbb8fd896477e5c7b40321c)

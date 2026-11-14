@@ -106,7 +106,7 @@
           "zmq_block": 28334,
           "zmq_tx": 28335
         },
-        "version": "31.1"
+        "version": "31.2"
       }
     },
     "operation_admission": [
@@ -187,7 +187,7 @@
         "hold": 9292,
         "p2p": 9735
       },
-      "version": "0.1.0-fe468ca"
+      "version": "0.1.0-d7244e2"
     },
     "workload": {
       "desired_replicas": 1,

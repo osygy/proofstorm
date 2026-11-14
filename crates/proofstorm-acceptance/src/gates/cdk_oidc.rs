@@ -1,4 +1,4 @@
-//! CDK + Keycloak 25.0.6: NUT-21 and NUT-22 with CDK's upstream default
+//! CDK + Keycloak 26.8.2: NUT-21 and NUT-22 with CDK's upstream default
 //! endpoint protection, SQLite and a separate auth database on the mint's
 //! shared PostgreSQL server, spent-token replay persistence, restart recovery,
 //! and teardown.
@@ -19,10 +19,10 @@ fn cell_document() -> Value {
         "api_version": "proofstorm/v1alpha1",
         "name": "cdk-oidc-live-cell",
         "components": [
-            {"id": "chain", "kind": "bitcoin", "implementation": "bitcoin-core", "version": "31.1", "config_version": "bitcoin-core/31/v1", "control": "cell", "config": {}},
+            {"id": "chain", "kind": "bitcoin", "implementation": "bitcoin-core", "version": "32.1", "config_version": "bitcoin-core/31/v1", "control": "cell", "config": {}},
             {"id": "lightning", "kind": "lightning", "implementation": "lnd", "version": proofstorm_core::LND_VERSION, "config_version": "lnd/0.20/v1", "control": "cell", "config": {"alias": "proofstorm-cdk-oidc"}},
             {"id": "database", "kind": "database", "implementation": "postgresql", "version": "17.11", "config_version": "postgresql/17/v1", "control": "cell", "config": {"storage_size": "2Gi"}},
-            {"id": "identity", "kind": "identity_provider", "implementation": "keycloak", "version": "25.0.6", "config_version": "keycloak/25/v1", "control": "cell", "config": {"access_token_lifespan_seconds": 600}},
+            {"id": "identity", "kind": "identity_provider", "implementation": "keycloak", "version": proofstorm_core::KEYCLOAK_VERSION, "config_version": "keycloak/25/v1", "control": "cell", "config": {"access_token_lifespan_seconds": 600}},
             {"id": "mint", "kind": "mint", "implementation": "cdk", "version": proofstorm_core::CDK_VERSION, "config_version": "cdk-mintd/0.18/v1", "control": "target", "config": {"name": "Proofstorm Authenticated CDK", "description": "Live NUT-21 and NUT-22 acceptance", "auth_max_blind_tokens": 3}}
         ],
         "links": [
@@ -73,7 +73,11 @@ pub fn run(context: &GateContext) -> Result<()> {
     let published = cell::review(&mut client, &preview)?;
     for (catalog_id, version, config_version) in [
         ("cdk", proofstorm_core::CDK_VERSION, "cdk-mintd/0.18/v1"),
-        ("keycloak", "25.0.6", "keycloak/25/v1"),
+        (
+            "keycloak",
+            proofstorm_core::KEYCLOAK_VERSION,
+            "keycloak/25/v1",
+        ),
         ("postgresql", "17.11", "postgresql/17/v1"),
     ] {
         let entry = cell::lock_entry(&published, catalog_id)?;
@@ -200,7 +204,7 @@ pub fn run(context: &GateContext) -> Result<()> {
     client.call("cell_remove", json!({"name": INSTANCE}))?;
     cell::wait_phase(&mut client, INSTANCE, "closed", 100, Duration::from_secs(3))?;
     println!(
-        "CDK + Keycloak 25.0.6 passed NUT-21/NUT-22 with upstream endpoint defaults, SQLite and PostgreSQL auth stores, replay persistence, restart recovery, and teardown"
+        "CDK + Keycloak 26.8.2 passed NUT-21/NUT-22 with upstream endpoint defaults, SQLite and PostgreSQL auth stores, replay persistence, restart recovery, and teardown"
     );
     Ok(())
 }

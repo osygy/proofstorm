@@ -62,7 +62,7 @@
         "HOME": "/wallet",
         "PROOFSTORM_WALLET": "{component_id}"
       },
-      "image": "proofstorm-registry.localhost:5000/cocod-wallet@sha256:4c6dfadc79c08a2c2d535859ee750042a28e162c86c2cea788f2b50f7ce39187",
+      "image": "proofstorm-registry.localhost:5000/cocod-wallet@sha256:8cc888e0a1fd96cf3a72916303d5d967b1b536cd9136f5221fcacfb02b767b25",
       "mounts": [
         {
           "mount_path": "/wallet",
@@ -126,7 +126,7 @@
     ],
     "relevant_links": [],
     "revision_digest": "sha256:b2-golden-revision",
-    "rollout_digest": "sha256:6a0d1321272e02e5744f9f0685c40460b4b62cd64ab7015615c16754c3fcc931",
+    "rollout_digest": "sha256:773f0b5fb5af110948c4c33167bff404cf52f53036700a92d839b39c7e25cd82",
     "storage": [
       {
         "claim_name": "wallet-data"
@@ -137,7 +137,7 @@
       "component_id": "wallet",
       "kind": "wallet",
       "ports": {},
-      "version": "0.0.17-dev.44e5101c"
+      "version": "0.0.17-dev.8fd97f38"
     },
     "workload": {
       "desired_replicas": 1,
@@ -182,7 +182,7 @@
           "template": {
             "metadata": {
               "annotations": {
-                "proofstorm.dev/rollout-digest": "sha256:6a0d1321272e02e5744f9f0685c40460b4b62cd64ab7015615c16754c3fcc931"
+                "proofstorm.dev/rollout-digest": "sha256:773f0b5fb5af110948c4c33167bff404cf52f53036700a92d839b39c7e25cd82"
               },
               "labels": {
                 "app.kubernetes.io/managed-by": "proofstormd",
@@ -222,7 +222,7 @@
                       "value": "62626"
                     }
                   ],
-                  "image": "proofstorm-registry.localhost:5000/cocod-wallet@sha256:4c6dfadc79c08a2c2d535859ee750042a28e162c86c2cea788f2b50f7ce39187",
+                  "image": "proofstorm-registry.localhost:5000/cocod-wallet@sha256:8cc888e0a1fd96cf3a72916303d5d967b1b536cd9136f5221fcacfb02b767b25",
                   "imagePullPolicy": "IfNotPresent",
                   "name": "component",
                   "readinessProbe": {

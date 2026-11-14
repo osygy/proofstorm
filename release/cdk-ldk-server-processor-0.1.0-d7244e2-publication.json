@@ -1,0 +1,35 @@
+{
+  "format_version": 1,
+  "date": "2026-11-14",
+  "versions": {
+    "cdk-ldk-server-processor": "0.1.0-d7244e2"
+  },
+  "source": {
+    "repository": "https://github.com/cashubtc/cdk-payment-processors",
+    "commit_sha": "d7244e261506b51d5b309a558bf19cd4ffc32f13"
+  },
+  "build_note": "Built from component-refresh commit 9ffe795; arm64 natively, amd64 under emulation on an arm64 host. Native AMD64 behavior is qualified by CI, not by this build.",
+  "images": [
+    {
+      "repository": "cdk-ldk-server-processor",
+      "platform": "linux/arm64",
+      "recipe": "docker/payment/Dockerfile.cdk-ldk-server-d7244e2",
+      "source_revision": "9ffe795ae4267cad1de182871b866832796ff4b1",
+      "image": "ghcr.io/osygy/proofstorm/cdk-ldk-server-processor@sha256:a60765f4b9d31e940c63413eb24ff5d4cc82e77b85c1665360460e2fc1cb0d37",
+      "probe": "d7244e261506b51d5b309a558bf19cd4ffc32f13",
+      "publication": "verified",
+      "anonymous_verified": true
+    },
+    {
+      "repository": "cdk-ldk-server-processor",
+      "platform": "linux/amd64",
+      "recipe": "docker/payment/Dockerfile.cdk-ldk-server-d7244e2",
+      "source_revision": "9ffe795ae4267cad1de182871b866832796ff4b1",
+      "image": "ghcr.io/osygy/proofstorm/cdk-ldk-server-processor@sha256:877f5009d620ea0d5dc738d5997e4556f8d43e33372e0593d6690bd8681c1b81",
+      "probe": "d7244e261506b51d5b309a558bf19cd4ffc32f13",
+      "publication": "verified",
+      "anonymous_verified": true
+    }
+  ],
+  "release_ready": false
+}

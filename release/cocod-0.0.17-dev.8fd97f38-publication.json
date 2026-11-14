@@ -1,0 +1,35 @@
+{
+  "format_version": 1,
+  "date": "2026-11-14",
+  "versions": {
+    "cocod-wallet": "0.0.17-dev.8fd97f38"
+  },
+  "source": {
+    "repository": "https://github.com/cashubtc/coco",
+    "commit_sha": "8fd97f3857a744a9f053a0886d71c5f31c38f70f"
+  },
+  "build_note": "Built from component-refresh commit 9ffe795; arm64 natively, amd64 under emulation on an arm64 host. Native AMD64 behavior is qualified by CI, not by this build.",
+  "images": [
+    {
+      "repository": "cocod-wallet",
+      "platform": "linux/arm64",
+      "recipe": "docker/wallet/Dockerfile.cocod-8fd97f38",
+      "source_revision": "9ffe795ae4267cad1de182871b866832796ff4b1",
+      "image": "ghcr.io/osygy/proofstorm/cocod-wallet@sha256:52f4c84a149ced85103e48b6ef82cd9c33b621865fc7ab04d29b62568f163a22",
+      "probe": "0.0.17",
+      "publication": "verified",
+      "anonymous_verified": true
+    },
+    {
+      "repository": "cocod-wallet",
+      "platform": "linux/amd64",
+      "recipe": "docker/wallet/Dockerfile.cocod-8fd97f38",
+      "source_revision": "9ffe795ae4267cad1de182871b866832796ff4b1",
+      "image": "ghcr.io/osygy/proofstorm/cocod-wallet@sha256:8cc888e0a1fd96cf3a72916303d5d967b1b536cd9136f5221fcacfb02b767b25",
+      "probe": "0.0.17",
+      "publication": "verified",
+      "anonymous_verified": true
+    }
+  ],
+  "release_ready": false
+}

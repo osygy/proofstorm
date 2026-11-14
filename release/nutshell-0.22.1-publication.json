@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "date": "2026-11-13",
+  "versions": {
+    "nutshell": "0.22.1"
+  },
+  "source": {
+    "repository": "https://github.com/cashubtc/nutshell",
+    "tag": "0.22.1",
+    "commit_sha": "3ab0137b0c6b214cecc2f883be606a668ae74e60",
+    "upstream_image": "docker.io/cashubtc/nutshell@sha256:05b536e0e3d6beee75417ece319a3f89a687d34cfb3cc12c6b19d253104b450e"
+  },
+  "build_note": "Built from component-refresh commit f8c3b14; arm64 natively, amd64 under emulation on an arm64 host. Mint and wallet share these per-platform images. Native AMD64 behavior is qualified by CI, not by this build.",
+  "images": [
+    {
+      "repository": "nutshell-mint",
+      "platform": "linux/arm64",
+      "recipe": "docker/mint/Dockerfile.nutshell-0.22.1",
+      "source_revision": "f8c3b1456bbd6f4be902f038b355d1d690a9227f",
+      "image": "ghcr.io/osygy/proofstorm/nutshell-mint@sha256:3e2fe1a1f5569d38e545dddff890066899cc289cd8cc86c36b3e4584542f2576",
+      "probe": "Nutshell, version 0.22.1",
+      "publication": "verified",
+      "anonymous_verified": true
+    },
+    {
+      "repository": "nutshell-mint",
+      "platform": "linux/amd64",
+      "recipe": "docker/mint/Dockerfile.nutshell-0.22.1",
+      "source_revision": "f8c3b1456bbd6f4be902f038b355d1d690a9227f",
+      "image": "ghcr.io/osygy/proofstorm/nutshell-mint@sha256:b4262dbc0eb78e5c7c3b8aa971ce41e1ecf916a9227ff81274a9a7614971ff3d",
+      "probe": "Nutshell, version 0.22.1",
+      "publication": "verified",
+      "anonymous_verified": true
+    }
+  ],
+  "release_ready": false
+}

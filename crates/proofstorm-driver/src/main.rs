@@ -138,7 +138,9 @@ async fn run() -> Result<()> {
             proofstorm_driver::keycloak::configure(
                 required("PROOFSTORM_OIDC_PORT")?.parse()?,
                 required("OIDC_ACCESS_TOKEN_LIFESPAN_SECONDS")?.parse()?,
-                &proofstorm_driver::http::required("KEYCLOAK_ADMIN_PASSWORD")?,
+                // Keycloak 26 reads KC_BOOTSTRAP_ADMIN_PASSWORD; 25.x reads the legacy name.
+                &proofstorm_driver::http::required("KC_BOOTSTRAP_ADMIN_PASSWORD")
+                    .or_else(|_| proofstorm_driver::http::required("KEYCLOAK_ADMIN_PASSWORD"))?,
             )
             .await?;
             return Ok(());

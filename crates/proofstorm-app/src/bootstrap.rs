@@ -37,7 +37,7 @@ fn validate_controller(value: &Value) -> Result<()> {
     })?;
     ensure!(
         image
-            .strip_prefix("ghcr.io/orangeshyguy21/proofstorm/proofstormd@sha256:")
+            .strip_prefix("ghcr.io/osygy/proofstorm/proofstormd@sha256:")
             .is_some_and(digest),
         "controller must be pinned to the confirmed registry"
     );
@@ -82,7 +82,24 @@ fn controller_metadata(home: &Path, image: &str) -> Result<Value> {
 }
 
 fn images() -> BTreeSet<String> {
-    catalog_images(proofstorm_core::distributed_catalog())
+    prefetch_images(proofstorm_core::distributed_catalog())
+}
+
+/// Images `setup --prefetch-all` downloads: everything a new cell can select.
+/// Deprecated entries stay admitted for existing locks and download on demand.
+fn prefetch_images(catalog: &proofstorm_core::CatalogResponse) -> BTreeSet<String> {
+    let mut images: BTreeSet<_> = catalog
+        .entries
+        .iter()
+        .filter(|entry| entry.support_lifecycle != proofstorm_core::SupportLifecycle::Deprecated)
+        .map(|entry| entry.image.clone())
+        .collect();
+    images.extend(
+        proofstorm_kube::images::HELPER_IMAGES
+            .iter()
+            .map(ToString::to_string),
+    );
+    images
 }
 
 fn catalog_images(catalog: &proofstorm_core::CatalogResponse) -> BTreeSet<String> {

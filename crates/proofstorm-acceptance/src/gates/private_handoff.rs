@@ -55,9 +55,10 @@ fn refused(
     tool: &str,
     request: Value,
 ) -> Result<()> {
-    let response = client.call_response(tool, request)?;
-    save(directory, id, &response)?;
-    if response.pointer("/error/data/code") != Some(&json!(expected_code)) {
+    // The route or the handler may refuse; call_error normalizes both shapes.
+    let error = client.call_error(tool, request)?;
+    save(directory, id, &error)?;
+    if error.pointer("/data/code") != Some(&json!(expected_code)) {
         bail!("request {id} did not receive the expected {expected_code} refusal");
     }
     Ok(())
@@ -89,7 +90,7 @@ fn delegate(
     reason = "two native directions share an explicit scope and evidence sequence"
 )]
 pub fn exercise(context: &GateContext, parent: &mut McpClient, directory: &Path) -> Result<()> {
-    let workspace = format!("cocod-wallet-{}", context.run_id);
+    let workspace = super::cocod_wallet::workspace(context, "private-handoff");
     let mut cdk = context.session(&workspace, "recipient-cdk", RECIPIENT_CAPABILITIES)?;
     let mut coco = context.session(&workspace, "recipient-coco", RECIPIENT_CAPABILITIES)?;
     let cdk_prefix = json!([

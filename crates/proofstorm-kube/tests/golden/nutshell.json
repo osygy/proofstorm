@@ -136,9 +136,9 @@
       "environment": {
         "CASHU_DIR": "/app/data",
         "HOME": "/app/data",
-        "PROOFSTORM_NUTSHELL_VERSION": "0.21.0"
+        "PROOFSTORM_NUTSHELL_VERSION": "0.22.1"
       },
-      "image": "proofstorm-registry.localhost:5000/nutshell-mint@sha256:f0c0e8a710e519774b0880841aac6c128471260cbc51da6306cfe60e9b08deda",
+      "image": "proofstorm-registry.localhost:5000/nutshell-mint@sha256:3e2fe1a1f5569d38e545dddff890066899cc289cd8cc86c36b3e4584542f2576",
       "mounts": [
         {
           "mount_path": "/app/data",
@@ -172,7 +172,7 @@
           "rest": 8080,
           "rpc": 10009
         },
-        "version": "0.21.4-beta"
+        "version": "0.21.8-beta"
       }
     },
     "operation_admission": [
@@ -239,7 +239,7 @@
       }
     ],
     "revision_digest": "sha256:b2-golden-revision",
-    "rollout_digest": "sha256:bd1d90411f99f03641ebc363be3868d3b2ceac4371e750c54769b4c31f07694d",
+    "rollout_digest": "sha256:b672d11e2fb5a3dddd41957d64498b72670fab00b329f14c8f549a5d76c8cf2b",
     "storage": [
       {
         "claim_name": "mint-data"
@@ -252,7 +252,7 @@
       "ports": {
         "http": 3338
       },
-      "version": "0.21.0"
+      "version": "0.22.1"
     },
     "workload": {
       "desired_replicas": 1,
@@ -322,7 +322,7 @@
           "MINT_WATCHDOG_BALANCE_CHECK_INTERVAL_SECONDS": "60",
           "MINT_WATCHDOG_ENABLED": "FALSE",
           "MINT_WEBSOCKET_READ_TIMEOUT": "600",
-          "PROOFSTORM_NUTSHELL_VERSION": "0.21.0",
+          "PROOFSTORM_NUTSHELL_VERSION": "0.22.1",
           "TOR": "FALSE"
         },
         "kind": "ConfigMap",
@@ -370,7 +370,7 @@
           "template": {
             "metadata": {
               "annotations": {
-                "proofstorm.dev/rollout-digest": "sha256:bd1d90411f99f03641ebc363be3868d3b2ceac4371e750c54769b4c31f07694d"
+                "proofstorm.dev/rollout-digest": "sha256:b672d11e2fb5a3dddd41957d64498b72670fab00b329f14c8f549a5d76c8cf2b"
               },
               "labels": {
                 "app.kubernetes.io/managed-by": "proofstormd",
@@ -404,7 +404,7 @@
                       }
                     }
                   ],
-                  "image": "proofstorm-registry.localhost:5000/nutshell-mint@sha256:f0c0e8a710e519774b0880841aac6c128471260cbc51da6306cfe60e9b08deda",
+                  "image": "proofstorm-registry.localhost:5000/nutshell-mint@sha256:3e2fe1a1f5569d38e545dddff890066899cc289cd8cc86c36b3e4584542f2576",
                   "imagePullPolicy": "IfNotPresent",
                   "name": "component",
                   "ports": [

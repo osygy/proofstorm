@@ -19,13 +19,18 @@ the checked-in render fixtures: fund, open a channel, settle payments, restart
 Bitcoin and the sending node, verify persisted identity/state, and settle again.
 CLN exercises both `pay` and the Nutshell 0.21 `xpay` contract.
 
+A Lightning entry may list `unsupported_bitcoin` releases with a `reason` for an
+upstream incompatibility. The runner reports those pairs as excluded, records them
+in `result.json`, and does not count them as cases. LND 0.20 and 0.19 exclude
+Bitcoin Core 32.1: Bitcoin Core 32 removed the `taproot` deployment they check.
+
 To qualify Nutshell, select one Bitcoin version and add:
 
 - `driver`: the locally built `Dockerfile.proofstormd` `native` target.
 - `mints`: exact Nutshell images with `implementation: "nutshell"`.
 - `wallets`: exact Nutshell images with `implementation: "nutshell-wallet"`.
 
-The supported test contracts are 0.20.3 and 0.21.0. Every selected mint runs
+The supported test contracts are 0.20.3, 0.21.0 and 0.22.1; CI runs 0.22.1 and 0.21.0. Every selected mint runs
 against every selected Lightning backend and every selected wallet. Tests use
 rendered configuration, SQLite, native mint/wallet entrypoints, the actual Rust
 driver, management mutual TLS, and the restricted CLN rune. They pay a real
@@ -35,7 +40,7 @@ identity after process restart. Their scope does not include PostgreSQL, Redis,
 OIDC, Kubernetes network policies, or controller admission and mutation flows.
 CDK 0.18 mint/backend qualification remains separate from this Nutshell matrix.
 
-Wallet entries can also select `implementation: "cdk-cli-wallet"` at 0.18.2
+Wallet entries can also select `implementation: "cdk-cli-wallet"` at 0.18.3
 (the retained 0.18.0 contract is also accepted).
 Those cases check native quote persistence and resumption, real issuance,
 token transfer, the driver's native melt receipt, independent invoice settlement,

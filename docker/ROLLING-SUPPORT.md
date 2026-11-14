@@ -92,6 +92,12 @@ Installed-component qualification and candidate compatibility use the same pins.
 `cln-hold` is still built on CLN 26.06.7 until its own native rebuild and publication.
 Historical release receipts and saved locks remain records of their original artifacts.
 
+New cells get Keycloak 26.8.2 as the OIDC provider for CDK and Nutshell auth;
+25.0.6 is deprecated and retained for existing locks. Keycloak 26 renamed the
+bootstrap administrator settings to `KC_BOOTSTRAP_ADMIN_*` (the renderer picks the
+names from the locked version) and answers a wrong password with HTTP 400
+`invalid_grant` instead of 401.
+
 ## Qualification and promotion
 
 Run the relevant component contracts with explicit images:
@@ -162,10 +168,9 @@ deprecated for existing locks. Every supported Nutshell mint claims both support
 wallet families. All Nutshell releases share the configuration schema; 0.21 and
 0.22 mints select their versioned action contract for native version checking and
 CLN `xpay`.
-The [verification record](../release/cashu-versions-20260918-verification.json)
-records exact artifacts and completed checks. Native AMD64 and the remaining
-managed-cell storage, authentication, and CDK backend gates still require
-qualification before release.
+The [alpha.16 verification record](../release/component-refresh-alpha16-verification.json)
+lists the exact artifacts, the local arm64 gate runs and the native CI runs for
+this window.
 
 The current CDK, LND and CLN releases are the `CDK_VERSION`, `LND_VERSION` and
 `CLN_VERSION` constants in `proofstorm-core`; catalog compatibility lists, candidate

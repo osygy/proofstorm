@@ -23,7 +23,7 @@ origin with its anonymous verification on both platforms.
 | Core Lightning | docker.io/elementsproject/lightningd |
 | CDK and Nutshell | docker.io/cashubtc images, with the existing management-client wrappers |
 | LDK Server and CDK LDK Server processor | Pinned upstream source builds; see [payment processor packaging](payment/README.md) |
-| Keycloak | quay.io/keycloak/keycloak |
+| Keycloak 26.8.2 (25.0.6 deprecated) | quay.io/keycloak/keycloak |
 | PostgreSQL, Redis | Docker Official Images under docker.io/library |
 | BusyBox | Unmodified Docker Official Image from docker.io/library/busybox |
 | Cocod | Frozen source and dependency lock in its wallet provenance record |

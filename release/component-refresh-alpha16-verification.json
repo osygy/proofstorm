@@ -1,0 +1,75 @@
+{
+  "format_version": 1,
+  "date": "2026-11-14",
+  "release": "0.1.0-alpha.16",
+  "branch": "component-refresh",
+  "scope": "Component refresh only; tooling pins (Rust, trunk, k3s, kubectl, kube-rs) are unchanged from alpha.15.",
+  "versions": {
+    "bitcoin-core": {"preferred": "32.1", "supported": ["31.2", "30.4"]},
+    "cln": {"preferred": "26.06.10", "supported": ["26.04.1", "25.12.1"]},
+    "lnd": {"preferred": "0.21.8-beta", "supported": ["0.20.8-beta", "0.19.3-beta"]},
+    "cdk": {"preferred": "0.18.3", "supported": []},
+    "nutshell": {"preferred": "0.22.1", "supported": ["0.21.0"], "deprecated": ["0.20.3"]},
+    "keycloak": {"preferred": "26.8.2", "deprecated": ["25.0.6"]},
+    "cocod": {"experimental": "0.0.17-dev.8fd97f38", "deprecated": ["0.0.17-dev.44e5101c"]},
+    "cdk-ldk-server-processor": {"experimental": "0.1.0-d7244e2", "deprecated": ["0.1.0-fe468ca"]}
+  },
+  "artifacts": {
+    "proofstorm_images": [
+      "release/bitcoin-31.2-publication.json",
+      "release/bitcoin-32.1-30.4-publication.json",
+      "release/cdk-0.18.3-publication.json",
+      "release/nutshell-0.22.1-publication.json",
+      "release/cocod-0.0.17-dev.8fd97f38-publication.json",
+      "release/cdk-ldk-server-processor-0.1.0-d7244e2-publication.json"
+    ],
+    "third_party_mirror": "release/upstream-mirror.json",
+    "note": "Every third-party pin (LND, CLN, Keycloak, PostgreSQL, Redis, BusyBox, BuildKit) is served by digest from ghcr.io/osygy/proofstorm/upstream and verified anonymously on linux/amd64 and linux/arm64."
+  },
+  "verification": {
+    "workspace": {
+      "command": "just check",
+      "revision": "861f10e plus docs",
+      "passed": true,
+      "tests": {"passed": 1406, "failed": 0, "ignored": 15}
+    },
+    "catalog_audit": {
+      "command": "just catalog-image audit",
+      "qualify": [],
+      "retire_after_qualification": [],
+      "complete_windows": ["bitcoin-core", "cln", "lnd", "nutshell", "nutshell-wallet"],
+      "single_family": {
+        "implementations": ["cdk", "cdk-cli-wallet"],
+        "reason": "The 0.18.0 support floor leaves one released family; a second is added when 0.19 qualifies."
+      }
+    },
+    "live_gates_arm64": {
+      "host": "macOS arm64, isolated just e2e runtimes; no unrelated Docker additions in any run",
+      "runs": [
+        {
+          "after": "third-party GHCR mirror (12f3b60, 417b246)",
+          "passed": ["slice2", "cdk-lnd-bdk", "cdk-cln", "cdk-bdk", "cdk-ldk", "cdk-postgres", "cdk-wallet", "cdk-mint-identity", "channel-lifecycle"]
+        },
+        {
+          "after": "Nutshell 0.22.1 (5212263)",
+          "passed": ["nutshell-mint", "nutshell-cln", "nutshell-postgres", "cross-implementation-wallet", "failed-melt", "mint-management", "quote-composition", "cdk-ldk", "cdk-mint-identity", "native-exec", "nutshell-oidc"]
+        },
+        {
+          "after": "cocod 8fd97f38 and ldk-server processor d7244e2 (67d9c47)",
+          "passed": ["cocod-wallet", "private-transfer", "private-handoff", "cocod-projection", "ldk-server-processor"]
+        },
+        {
+          "after": "Keycloak 26.8.2 (861f10e)",
+          "passed": ["keycloak", "cdk-oidc", "nutshell-oidc"]
+        }
+      ]
+    },
+    "ci": "pending"
+  },
+  "limitations": [
+    "Fresh-version support only: no in-place database migration is claimed, including Nutshell 0.21 to 0.22 and Keycloak 25 to 26.",
+    "Cells locked to a deprecated patch must be recreated before they can be edited.",
+    "Local amd64 images were built under emulation; native amd64 behavior comes from the CI runs above."
+  ],
+  "release_ready": false
+}

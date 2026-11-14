@@ -17,7 +17,7 @@ case "$4" in linux/arm64|linux/amd64) ;; *) printf 'Unsupported platform\n' >&2;
 build_args=(build --provenance=false --no-cache --platform "$4" --target "$component"
     --build-arg "DRIVER_IMAGE=$2" --build-arg "$argument=$3")
 if [[ $# == 5 ]]; then
-    [[ "$component" == nutshell && ( "$5" == 0.20.3 || "$5" == 0.21.0 ) ]] || exit 2
+    [[ "$component" == nutshell && ( "$5" == 0.20.3 || "$5" == 0.21.0 || "$5" == 0.22.1 ) ]] || exit 2
     build_args+=(--build-arg "NUTSHELL_VERSION=$5")
 fi
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)

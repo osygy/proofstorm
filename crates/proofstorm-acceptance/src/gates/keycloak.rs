@@ -15,7 +15,7 @@ fn document() -> Value {
         "api_version":"proofstorm/v1alpha1", "name":"keycloak-provider",
         "components":[
             {"id":"identity-db","kind":"database","implementation":"postgresql","version":"17.11","config_version":"postgresql/17/v1","control":"cell","config":{"storage_size":"2Gi"}},
-            {"id":"identity","kind":"identity_provider","implementation":"keycloak","version":"25.0.6","config_version":"keycloak/25/v1","control":"cell","config":{"access_token_lifespan_seconds":600}}
+            {"id":"identity","kind":"identity_provider","implementation":"keycloak","version":proofstorm_core::KEYCLOAK_VERSION,"config_version":"keycloak/25/v1","control":"cell","config":{"access_token_lifespan_seconds":600}}
         ],
         "links":[{"id":"identity-database","kind":"database_backend","from":"identity","to":"identity-db","binding":{"type":"database","role":"primary"}}],
         "policy":{"allow":[],"limits":{"max_components":8,"max_links":16,"max_config_bytes":16384}}
@@ -95,14 +95,17 @@ fn observe(context: &GateContext, namespace: &str, lifetime: u64) -> Result<Valu
     let password = credential(context, namespace, "OIDC_TEST_PASSWORD")?;
     let url = forward.url(&format!("{REALM}/protocol/openid-connect/token"));
     let (status, rejected) = login(context, &url, &username, "incorrect-password")?;
+    // Keycloak 26 answers bad credentials with 400, as RFC 6749 section 5.2 says.
     ensure!(
-        status == 401 && rejected["error"] == "invalid_grant",
-        "invalid OIDC password was not rejected"
+        status == 400 && rejected["error"] == "invalid_grant",
+        "invalid OIDC password was not rejected (HTTP {status}, error {})",
+        rejected["error"]
     );
     let (status, accepted) = login(context, &url, &username, &password)?;
     ensure!(
         status == 200,
-        "generated OIDC credentials were not accepted"
+        "generated OIDC credentials were not accepted (HTTP {status}, error {})",
+        accepted["error"]
     );
     let token = accepted["access_token"]
         .as_str()

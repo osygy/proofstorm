@@ -59,6 +59,10 @@ impl Drop for OwnedChild {
     }
 }
 
+/// Bound on captured subprocess output. Release metadata embeds the whole
+/// catalog (about 400 KB in alpha.16), so this leaves room to grow.
+pub(super) const OUTPUT_LIMIT: u64 = 4 * 1024 * 1024;
+
 pub async fn run(
     mut command: Command,
     timeout: Duration,
@@ -84,7 +88,7 @@ pub async fn run(
     };
     tokio::pin!(cancelled);
     let (status, failure) = loop {
-        if stdout.metadata()?.len() > 262_144 || stderr.metadata()?.len() > 262_144 {
+        if stdout.metadata()?.len() > OUTPUT_LIMIT || stderr.metadata()?.len() > OUTPUT_LIMIT {
             break (None, Some("output_limit"));
         }
         if let Some(status) = child.0.try_wait()? {
@@ -108,7 +112,7 @@ pub async fn run(
     let read = |file: &mut std::fs::File| -> Result<String> {
         file.seek(SeekFrom::Start(0))?;
         let mut bytes = Vec::new();
-        file.take(262_144).read_to_end(&mut bytes)?;
+        file.take(OUTPUT_LIMIT).read_to_end(&mut bytes)?;
         Ok(String::from_utf8_lossy(&bytes).into_owned())
     };
     Ok(Output {
@@ -129,7 +133,8 @@ pub async fn metadata(executable: &std::path::Path, mcp: bool) -> Result<serde_j
     let output = run(command, Duration::from_secs(15), None).await?;
     ensure!(
         output.success,
-        "installed metadata command failed: {}",
+        "installed metadata command failed ({}): {}",
+        output.failure.unwrap_or("exit"),
         output.stderr
     );
     Ok(serde_json::from_str(&output.stdout)?)

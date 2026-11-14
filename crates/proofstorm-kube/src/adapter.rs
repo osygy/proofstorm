@@ -1660,6 +1660,18 @@ pub fn render_keycloak_component(
         ))
     })?;
     let http_port = target_port(&plan.target_descriptor, "http")?;
+    // Keycloak 26 replaced KEYCLOAK_ADMIN* with bootstrap administrator settings;
+    // deprecated 25.x locks keep the names that release reads.
+    let legacy = plan
+        .execution_context
+        .environment
+        .get("PROOFSTORM_KEYCLOAK_VERSION")
+        .is_some_and(|version| version.starts_with("25."));
+    let (admin_username, admin_password) = if legacy {
+        ("KEYCLOAK_ADMIN", "KEYCLOAK_ADMIN_PASSWORD")
+    } else {
+        ("KC_BOOTSTRAP_ADMIN_USERNAME", "KC_BOOTSTRAP_ADMIN_PASSWORD")
+    };
     let namespace = instance_namespace(&plan.instance_key);
     let secret_name = format!("{}-credentials", plan.component_id);
     let labels = labels(&plan.instance_key, Some(&plan.component_id));
@@ -1699,10 +1711,10 @@ pub fn render_keycloak_component(
                         {"name": "KC_HTTP_ENABLED", "value": "true"},
                         {"name": "KC_HEALTH_ENABLED", "value": "true"},
                         {"name": "JAVA_OPTS_KC_HEAP", "value": "-XX:InitialRAMPercentage=10 -XX:MaxRAMPercentage=45"},
-                        {"name": "KEYCLOAK_ADMIN", "value": "proofstorm-admin"},
+                        {"name": admin_username, "value": "proofstorm-admin"},
                         {"name": "PROOFSTORM_OIDC_PORT", "value": http_port.to_string()},
                         {"name": "OIDC_ACCESS_TOKEN_LIFESPAN_SECONDS", "value": access_token_lifespan_seconds.to_string()},
-                        {"name": "KEYCLOAK_ADMIN_PASSWORD", "valueFrom": {"secretKeyRef": {"name": secret_name, "key": "KEYCLOAK_ADMIN_PASSWORD"}}}
+                        {"name": admin_password, "valueFrom": {"secretKeyRef": {"name": secret_name, "key": "KEYCLOAK_ADMIN_PASSWORD"}}}
                     ],
                     "ports": [{"name": "http", "containerPort": http_port}],
                     "securityContext": container_security(),
@@ -1802,7 +1814,7 @@ pub fn render_bitcoin_component(
             "bitcoin plan does not carry Bitcoin Core configuration".into(),
         ));
     };
-    let args = vec![
+    let mut args = vec![
         "-regtest".to_owned(),
         "-datadir=/home/bitcoin/.bitcoin".to_owned(),
         "-server=1".to_owned(),
@@ -1817,6 +1829,10 @@ pub fn render_bitcoin_component(
         format!("-fallbackfee={}", config.fallback_fee),
         "-debug=0".to_owned(),
     ];
+    // Validation admits a non-zero value only on Bitcoin Core 32 and newer.
+    if config.rpc_max_connections > 0 {
+        args.push(format!("-rpcmaxconnections={}", config.rpc_max_connections));
+    }
     let mut rendered = RenderedComponent::default();
     rendered.services.push(resource(service_from_plan(plan))?);
     rendered.stateful_sets.push(resource(stateful_set(
@@ -2614,13 +2630,15 @@ pub fn render_nutshell_mint_component(
     if auth_database.is_none() {
         environment.insert("MINT_AUTH_DATABASE".into(), "/app/data".into());
     }
-    let uses_xpay = plan
+    // Nutshell 0.21 and newer pay through CLN's xpay; 0.20 keeps pay.
+    let release = plan
         .execution_context
         .environment
         .get("PROOFSTORM_NUTSHELL_VERSION")
-        .is_some_and(|version| version == "0.21.0");
-    if uses_xpay {
-        environment.insert("PROOFSTORM_NUTSHELL_VERSION".into(), "0.21.0".into());
+        .filter(|version| matches!(version.as_str(), "0.21.0" | "0.22.1"));
+    let uses_xpay = release.is_some();
+    if let Some(release) = release {
+        environment.insert("PROOFSTORM_NUTSHELL_VERSION".into(), release.clone());
         if uses_cln {
             environment.insert(
                 "MINT_CLNREST_RUNE".into(),
@@ -4763,6 +4781,47 @@ mod tests {
     }
 
     #[test]
+    fn bitcoin_rpc_max_connections_renders_only_when_set() {
+        let cell = CellSpec {
+            api_version: API_VERSION.into(),
+            name: "bitcoin-rpc".into(),
+            components: vec![component(
+                "chain",
+                ComponentKind::Bitcoin,
+                "bitcoin-core",
+                ControlClass::Cell,
+            )],
+            links: vec![],
+            policy: CellPolicy::default(),
+        };
+        let lock = resolve_lock(&cell, default_catalog()).expect("lock");
+        let first_plan =
+            compile_component_plans("i0123456789012345678", "sha256:rpc", &cell, &lock)
+                .expect("compile plan")
+                .remove(0);
+        let args = |plan: &ComponentPlanContract| {
+            let rendered = render_bitcoin_component(plan).expect("render");
+            serde_json::to_value(&rendered.stateful_sets[0]).expect("JSON")["spec"]["template"]
+                ["spec"]["containers"][0]["args"]
+                .clone()
+        };
+        assert!(
+            !args(&first_plan).to_string().contains("-rpcmaxconnections"),
+            "the upstream default leaves the flag out"
+        );
+        let mut raised = first_plan.clone();
+        if let EffectiveComponentConfig::BitcoinCore(config) = &mut raised.effective_config {
+            config.rpc_max_connections = 256;
+        }
+        assert!(
+            args(&raised)
+                .as_array()
+                .expect("args")
+                .contains(&json!("-rpcmaxconnections=256"))
+        );
+    }
+
+    #[test]
     fn bitcoin_plan_rendering_is_pure_and_rollout_scoped() {
         let cell = CellSpec {
             api_version: API_VERSION.into(),
@@ -6832,7 +6891,7 @@ mod tests {
         );
         assert!(lock.entries.iter().any(|entry| {
             entry.catalog_id == "cln"
-                && entry.version == "26.06.9"
+                && entry.version == "26.06.10"
                 && entry.image.contains("@sha256:")
         }));
     }

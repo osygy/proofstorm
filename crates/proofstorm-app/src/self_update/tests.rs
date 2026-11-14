@@ -330,7 +330,7 @@ async fn subprocesses_are_bounded_and_descendants_are_stopped() {
         .await
         .unwrap();
     assert_eq!(output.failure, Some("output_limit"));
-    assert!(output.stdout.len() <= 262_144);
+    assert!(output.stdout.len() as u64 <= process::OUTPUT_LIMIT);
 }
 
 #[test]

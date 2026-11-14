@@ -122,13 +122,13 @@ mod tests {
             default_backend_registry(),
         )
         .expect("coverage manifest");
-        assert_eq!(manifest.entries.len(), 30);
+        assert_eq!(manifest.entries.len(), 47);
         let cdk = manifest
             .entries
             .iter()
             .find(|entry| entry.implementation == "cdk" && entry.support_lifecycle.is_supported())
             .expect("CDK coverage");
-        assert_eq!(cdk.upstream_version, "0.18.2");
+        assert_eq!(cdk.upstream_version, "0.18.3");
         assert_eq!(cdk.config_version, "cdk-mintd/0.18/v1");
         assert_eq!(
             cdk.support.storage,
@@ -195,7 +195,7 @@ mod tests {
         assert!(
             cdk.support.compatible_wallet_adapters[0]
                 .versions
-                .contains("0.20.3")
+                .contains("0.22.1")
         );
         assert_eq!(cdk.support.embedded_payment_bindings.len(), 3);
         assert_eq!(
@@ -209,9 +209,8 @@ mod tests {
         let nutshell = manifest
             .entries
             .iter()
-            .find(|entry| entry.implementation == "nutshell")
-            .expect("Nutshell mint coverage");
-        assert_eq!(nutshell.upstream_version, "0.20.3");
+            .find(|entry| entry.implementation == "nutshell" && entry.upstream_version == "0.20.3")
+            .expect("retained Nutshell 0.20.3 coverage");
         assert_eq!(nutshell.config_version, "nutshell-mint/0.20/v1");
         assert_eq!(
             nutshell.support.storage,
@@ -264,14 +263,14 @@ mod tests {
         assert!(nutshell.compatible_dependencies.iter().any(|dependency| {
             dependency.link_kind == crate::LinkKind::DatabaseBackend
                 && dependency.implementation == "redis"
-                && dependency.versions.contains("8.10.2")
+                && dependency.versions.contains("8.10.3")
         }));
         let redis = manifest
             .entries
             .iter()
             .find(|entry| entry.implementation == "redis" && entry.support_lifecycle.is_supported())
             .expect("Redis coverage");
-        assert_eq!(redis.upstream_version, "8.10.2");
+        assert_eq!(redis.upstream_version, "8.10.3");
         assert_eq!(redis.config_version, "redis/8.10/v1");
         assert_eq!(redis.support.storage, [StorageBackend::Ephemeral].into());
         assert_eq!(

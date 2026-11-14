@@ -8,7 +8,9 @@ use super::{
 use crate::processor_ids::LDK_PROCESSOR;
 
 pub const LDK_SERVER_VERSION: &str = "0.1.0-50fe752";
-pub const LDK_PROCESSOR_VERSION: &str = "0.1.0-fe468ca";
+pub const LDK_PROCESSOR_VERSION: &str = "0.1.0-d7244e2";
+/// The superseded processor, kept for existing cell locks.
+const LDK_PROCESSOR_FE468CA: &str = "0.1.0-fe468ca";
 
 #[allow(
     clippy::too_many_lines,
@@ -26,6 +28,11 @@ pub(super) fn extend(
         "proofstorm-registry.localhost:5000/ldk-server@sha256:15e5a5ea093a320ecb8ffdf74ecd39ab5c92dc65b2371d47bc3e1c920c2b22cc"
     };
     let processor_image = if amd64 {
+        "proofstorm-registry.localhost:5000/cdk-ldk-server-processor@sha256:877f5009d620ea0d5dc738d5997e4556f8d43e33372e0593d6690bd8681c1b81"
+    } else {
+        "proofstorm-registry.localhost:5000/cdk-ldk-server-processor@sha256:a60765f4b9d31e940c63413eb24ff5d4cc82e77b85c1665360460e2fc1cb0d37"
+    };
+    let superseded_processor_image = if amd64 {
         "proofstorm-registry.localhost:5000/cdk-ldk-server-processor@sha256:1fcd8620a90f221432e960e29c46e5c11380ed661ff215d8acdad62ab42976c3"
     } else {
         "proofstorm-registry.localhost:5000/cdk-ldk-server-processor@sha256:ee21cdf4056d6f228d17f2e6739f98f11f84f94812762d1b8d6e7d873fc9451e"
@@ -83,10 +90,21 @@ pub(super) fn extend(
         ),
         vec![ControlClass::Cell, ControlClass::Target],
     ));
+    // The superseded processor revision stays resolvable for existing locks.
+    let mut superseded = entries.last().expect("current processor entry").clone();
+    superseded.version = LDK_PROCESSOR_FE468CA.into();
+    superseded.image = superseded_processor_image.into();
+    superseded.support_lifecycle = SupportLifecycle::Deprecated;
+    entries.push(superseded);
     for entry in entries.iter_mut() {
-        let encoded = match entry.id.as_str() {
-            "ldk-server" => include_str!("../../../docker/payment/ldk-server-provenance.json"),
-            LDK_PROCESSOR => {
+        let encoded = match (entry.id.as_str(), entry.version.as_str()) {
+            ("ldk-server", LDK_SERVER_VERSION) => {
+                include_str!("../../../docker/payment/ldk-server-provenance.json")
+            }
+            (LDK_PROCESSOR, LDK_PROCESSOR_VERSION) => {
+                include_str!("../../../docker/payment/cdk-ldk-server-d7244e2-provenance.json")
+            }
+            (LDK_PROCESSOR, LDK_PROCESSOR_FE468CA) => {
                 include_str!("../../../docker/payment/cdk-ldk-server-provenance.json")
             }
             _ => continue,
@@ -119,7 +137,7 @@ pub(super) fn endpoints(implementation: &str) -> Option<Vec<CatalogRuntimeEndpoi
             "payment_processor",
             &["component_logs", "reachability_oracle"],
             &[&format!(
-                "Pinned upstream revision fe468cad486157683eddbc0df4ff87ba71b6c0a3, CDK payment protocol 4.0.0. Requires bolt11/sat and bolt12/sat links to one LDK Server; CDK mints use the same two bindings to this component in sat; the backend reports msat and CDK converts. Nutshell candidates bind the same two methods in sat or the native msat. The linked LDK node owns durable payment history; the live event stream does not replay payments missed during an outage. After reconnect, check original Cashu mint and melt quotes to reconcile them against durable LDK payment history. GetSettings: /opt/proofstorm/driver processor-settings https://127.0.0.1:50051 /processor-client/tls {LDK_PROCESSOR}. Mint/processor transport requires mutual TLS. No MPP support."
+                "Pinned upstream revision recorded in its build provenance, CDK payment protocol 4.0.0. Requires bolt11/sat and bolt12/sat links to one LDK Server; CDK mints use the same two bindings to this component in sat; the backend reports msat and CDK converts. Nutshell candidates bind the same two methods in sat or the native msat. The linked LDK node owns durable payment history; the live event stream does not replay payments missed during an outage. After reconnect, check original Cashu mint and melt quotes to reconcile them against durable LDK payment history. GetSettings: /opt/proofstorm/driver processor-settings https://127.0.0.1:50051 /processor-client/tls {LDK_PROCESSOR}. Mint/processor transport requires mutual TLS. No MPP support."
             )],
         )]),
         _ => None,

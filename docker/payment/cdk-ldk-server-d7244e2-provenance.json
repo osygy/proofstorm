@@ -1,0 +1,16 @@
+{
+  "repository": "https://github.com/cashubtc/cdk-payment-processors",
+  "commit_sha": "d7244e261506b51d5b309a558bf19cd4ffc32f13",
+  "artifact_url": "https://codeload.github.com/cashubtc/cdk-payment-processors/tar.gz/d7244e261506b51d5b309a558bf19cd4ffc32f13",
+  "artifact_sha256": "54cd1fbaddf6b264f403a429319e3ba54f09a01950b7f25eeadabad0c2f75792",
+  "platform": "linux/arm64",
+  "runtime_image": "docker.io/library/debian@sha256:3783cc01769c7b2b1b83a5c5ad96c815348e28ed7da68e2e3687004faa906251",
+  "recipe_digest": "sha256:33731ddf86febcac5dfc15bf77574cc88ec8458d171a5d7ac90689498bdf6920",
+  "package_path": "crates/ldk-server",
+  "dependency_lock_digest": "sha256:00c2abe9815ebea95a323095510421082f6398cb2df375e4b5f21daa26d35491",
+  "build_image": "docker.io/library/rust@sha256:93ce27a88655056a51dbdd8f5f2d7ddc071c7b0070fb288a37b5a285fc83971e",
+  "transformations": [
+    "Build the pinned upstream source with its own frozen Cargo.lock; no application source patches.",
+    "Disable release LTO; use optimization level 1 to bound compiler memory, and record the source revision for offline image inspection."
+  ]
+}

@@ -1,10 +1,26 @@
 // Current releases; acceptance gates and candidate baselines read these too.
-pub const CDK_VERSION: &str = "0.18.2";
-pub const LND_VERSION: &str = "0.21.4-beta";
-pub const CLN_VERSION: &str = "26.06.9";
+pub const BITCOIN_VERSION: &str = "32.1";
+// The rolling three-family Bitcoin Core window.
+const BITCOIN_VERSIONS: &[&str] = &["30.4", "31.2", BITCOIN_VERSION];
+// LND before 0.21 detects Taproot from getdeploymentinfo's taproot deployment,
+// which Bitcoin Core 32 removed (bitcoin/bitcoin#26201), and refuses to start.
+// LND 0.21 checks script_flags instead (lightningnetwork/lnd#10683).
+const BITCOIN_VERSIONS_BEFORE_32: &[&str] = &["30.4", "31.2"];
+// Experimental stacks keep the release they were last qualified with.
+pub(crate) const EXPERIMENTAL_BITCOIN_VERSIONS: &[&str] = &["31.2"];
+pub const CDK_VERSION: &str = "0.18.3";
+pub const LND_VERSION: &str = "0.21.8-beta";
+pub const CLN_VERSION: &str = "26.06.10";
+pub const KEYCLOAK_VERSION: &str = "26.8.2";
 
 // Shared CDK daemon with LDK, BDK and PostgreSQL support.
-pub const CDK_MINT_IMAGE: &str = "proofstorm-registry.localhost:5000/cdk-mint@sha256:25e54ceb3999a4f99b88b838e1d66a69b0a91043823e50025d7544b968b77e10";
+pub const CDK_MINT_IMAGE: &str = "proofstorm-registry.localhost:5000/cdk-mint@sha256:ad3a895cd2faeb41d8251f874dde164c1a75afc6a4adda1517aae3f520a69bd9";
+// Bitcoin Core release packaging; the catalog promotes the 31.1 base entry through them.
+const BITCOIN_0312_IMAGE: &str = "proofstorm-registry.localhost:5000/bitcoin-core@sha256:b008a393be3afecf54354c7fe982ee04760501746636bff7bc8465aca89937a0";
+const BITCOIN_IMAGE: &str = "proofstorm-registry.localhost:5000/bitcoin-core@sha256:cfec5b592dfea4af2b3e715649c95ca07885d219b651e4a7844ba52750deb331";
+const BITCOIN_0304_IMAGE: &str = "proofstorm-registry.localhost:5000/bitcoin-core@sha256:48495824207a5d7945ff91a450a218a7131165ccb3eda5dfd309fc37f219e716";
+// Superseded 0.18.2 daemon, kept for existing cell locks.
+const CDK_0182_MINT_IMAGE: &str = "proofstorm-registry.localhost:5000/cdk-mint@sha256:25e54ceb3999a4f99b88b838e1d66a69b0a91043823e50025d7544b968b77e10";
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -360,6 +376,25 @@ pub enum CatalogPlatform {
 }
 
 /// Resolve a catalog/local-registry lock to its immutable distribution source.
+/// GHCR repository holding every pinned third-party image by its exact digest.
+pub const UPSTREAM_MIRROR: &str = "ghcr.io/osygy/proofstorm/upstream";
+
+/// Public origins of the mirrored candidate-build helpers (git source fetch and
+/// `BuildKit`), which are not catalog entries.
+pub const UPSTREAM_HELPER_ORIGINS: [&str; 2] = [
+    "docker.io/alpine/git@sha256:c0280cf9572316299b08544065d3bf35db65043d5e3963982ec50647d2746e26",
+    "docker.io/moby/buildkit@sha256:a02f6571999693089dc928e9bbb64836c21703b214195d8637c011f1a7025ef6",
+];
+
+/// The original public reference of a mirrored third-party catalog image, if
+/// the image is one (`docker.io/...@sha256:...`).
+#[must_use]
+pub fn upstream_origin(image: &str) -> Option<String> {
+    let (repository, sha) = image.split_once("@sha256:")?;
+    let origin = repository.strip_prefix("proofstorm-registry.localhost:5000/upstream/")?;
+    Some(format!("{origin}@sha256:{sha}"))
+}
+
 /// Installation and qualification must use the same mapping.
 ///
 /// # Errors
@@ -371,13 +406,17 @@ pub fn catalog_image_source(image: &str) -> Result<String, String> {
     if sha.len() != 64 || !sha.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err("invalid runtime image digest".into());
     }
-    let source = if let Some(repository) =
-        repository.strip_prefix("proofstorm-registry.localhost:5000/upstream/")
+    // Pinned third-party images are served from Proofstorm's GHCR mirror, so
+    // installs, cells and CI never depend on Docker Hub or Quay rate limits.
+    // The in-cluster name keeps the original registry path as provenance.
+    let source = if repository
+        .strip_prefix("proofstorm-registry.localhost:5000/upstream/")
+        .is_some()
     {
-        repository.to_owned()
+        UPSTREAM_MIRROR.to_owned()
     } else if let Some(repository) = repository.strip_prefix("proofstorm-registry.localhost:5000/")
     {
-        format!("ghcr.io/orangeshyguy21/proofstorm/{repository}")
+        format!("ghcr.io/osygy/proofstorm/{repository}")
     } else {
         repository.to_owned()
     };
@@ -408,8 +447,8 @@ pub fn distributed_catalog_for_platform(platform: CatalogPlatform) -> CatalogRes
 }
 
 // Mint backend support names only qualified releases.
-const LND_VERSIONS: &[&str] = &["0.20.5-beta", LND_VERSION];
-const CLN_VERSIONS: &[&str] = &[CLN_VERSION];
+const LND_VERSIONS: &[&str] = &["0.19.3-beta", "0.20.8-beta", LND_VERSION];
+const CLN_VERSIONS: &[&str] = &["25.12.1", "26.04.1", CLN_VERSION];
 
 fn build_catalog(amd64: bool) -> CatalogResponse {
     build_catalog_with_spark(amd64, spark::pinned(amd64).as_ref())
@@ -462,9 +501,9 @@ fn build_catalog_with_spark(amd64: bool, spark_images: Option<&spark::Images>) -
             backends,
             adapter_version,
             "lnd",
-            "0.20.5-beta",
+            "0.20.8-beta",
             SupportLifecycle::Supported,
-            "docker.io/lightninglabs/lnd@sha256:2108a19d7569489a734f6b0862ddd1c07b1701fb2d65d554ec463706eeb68a98",
+            "docker.io/lightninglabs/lnd@sha256:d23faa661edebdcb0c633ce6bc33a7abdcdb82283bc53620463bf2b00a30c8cb",
         ),
         lightning_entry(
             amd64,
@@ -473,7 +512,7 @@ fn build_catalog_with_spark(amd64: bool, spark_images: Option<&spark::Images>) -
             "lnd",
             LND_VERSION,
             SupportLifecycle::Preferred,
-            "docker.io/lightninglabs/lnd@sha256:04d06edcc0f6e99a5e797ea34959f330add222226f840cd86afbc31f8f29627d",
+            "docker.io/lightninglabs/lnd@sha256:f17b2944b1b76396cccbe58feac469b6cefb5f407557ac77f0880f136fb935f9",
         ),
         lightning_entry(
             amd64,
@@ -482,9 +521,64 @@ fn build_catalog_with_spark(amd64: bool, spark_images: Option<&spark::Images>) -
             "cln",
             CLN_VERSION,
             SupportLifecycle::Preferred,
-            "docker.io/elementsproject/lightningd@sha256:de74289ddcccb68cd60543b08b2b8594002d819125d200492e17a95166d56577",
+            "docker.io/elementsproject/lightningd@sha256:59f10c4c7429bb80791481c906859f6de1aa58ef224758aa25d50b7d47fc0c04",
+        ),
+        // Older release families in the rolling three-family window.
+        lightning_entry(
+            amd64,
+            backends,
+            adapter_version,
+            "lnd",
+            "0.19.3-beta",
+            SupportLifecycle::Supported,
+            "docker.io/lightninglabs/lnd@sha256:b175f136c01ffe01e75eee836273dd15b21a7e2cea2bd316ea98ad3640743aaa",
+        ),
+        lightning_entry(
+            amd64,
+            backends,
+            adapter_version,
+            "cln",
+            "26.04.1",
+            SupportLifecycle::Supported,
+            "docker.io/elementsproject/lightningd@sha256:29a2b1df82d04675be289656d0fe681b587acd38bb8e203d00f226cad84ef73d",
+        ),
+        lightning_entry(
+            amd64,
+            backends,
+            adapter_version,
+            "cln",
+            "25.12.1",
+            SupportLifecycle::Supported,
+            "docker.io/elementsproject/lightningd@sha256:618eed33ba923cc459164bba38e8c554f97113f730a2f96e8423b18c0c515d9d",
         ),
         // Superseded patches stay resolvable for existing cell locks; new cells are refused them.
+        lightning_entry(
+            amd64,
+            backends,
+            adapter_version,
+            "lnd",
+            "0.20.5-beta",
+            SupportLifecycle::Deprecated,
+            "docker.io/lightninglabs/lnd@sha256:2108a19d7569489a734f6b0862ddd1c07b1701fb2d65d554ec463706eeb68a98",
+        ),
+        lightning_entry(
+            amd64,
+            backends,
+            adapter_version,
+            "lnd",
+            "0.21.4-beta",
+            SupportLifecycle::Deprecated,
+            "docker.io/lightninglabs/lnd@sha256:04d06edcc0f6e99a5e797ea34959f330add222226f840cd86afbc31f8f29627d",
+        ),
+        lightning_entry(
+            amd64,
+            backends,
+            adapter_version,
+            "cln",
+            "26.06.9",
+            SupportLifecycle::Deprecated,
+            "docker.io/elementsproject/lightningd@sha256:de74289ddcccb68cd60543b08b2b8594002d819125d200492e17a95166d56577",
+        ),
         lightning_entry(
             amd64,
             backends,
@@ -519,9 +613,9 @@ fn build_catalog_with_spark(amd64: bool, spark_images: Option<&spark::Images>) -
             ComponentKind::Mint,
             "CDK Cashu mint: linked LND/CLN or embedded LDK Node Lightning, optional embedded BDK on-chain, optional NUT-21/22 auth",
             adapter_version,
-            CDK_VERSION,
+            "0.18.2",
             ReleaseChannel::Stable,
-            CDK_MINT_IMAGE,
+            CDK_0182_MINT_IMAGE,
             BTreeSet::from([
                 CatalogFeature::NativeCli,
                 CatalogFeature::Regtest,
@@ -537,9 +631,13 @@ fn build_catalog_with_spark(amd64: bool, spark_images: Option<&spark::Images>) -
             vec![
                 dependency(LinkKind::PaymentBackend, "lnd", LND_VERSIONS),
                 dependency(LinkKind::PaymentBackend, "cln", CLN_VERSIONS),
-                dependency(LinkKind::ChainBackend, "bitcoin-core", &["31.1"]),
+                dependency(LinkKind::ChainBackend, "bitcoin-core", BITCOIN_VERSIONS),
                 dependency(LinkKind::DatabaseBackend, "postgresql", &["17.11"]),
-                dependency(LinkKind::AuthenticationBackend, "keycloak", &["25.0.6"]),
+                dependency(
+                    LinkKind::AuthenticationBackend,
+                    "keycloak",
+                    &[KEYCLOAK_VERSION],
+                ),
             ],
             with_embedded_payment_bindings(
                 support_matrix(
@@ -560,7 +658,7 @@ fn build_catalog_with_spark(amd64: bool, spark_images: Option<&spark::Images>) -
                         AuthenticationMode::Nut21Clear,
                         AuthenticationMode::Nut22Blind,
                     ],
-                    vec![version_support("nutshell-wallet", &["0.20.3", "0.21.0"])],
+                    vec![version_support("nutshell-wallet", &["0.21.0", "0.22.1"])],
                 ),
                 &[
                     embedded_payment_binding(PaymentMethod::Bolt11, "sat", "ldk-node"),
@@ -593,7 +691,7 @@ fn build_catalog_with_spark(amd64: bool, spark_images: Option<&spark::Images>) -
                 dependency(LinkKind::PaymentBackend, "lnd", LND_VERSIONS),
                 dependency(LinkKind::PaymentBackend, "cln", CLN_VERSIONS),
                 dependency(LinkKind::DatabaseBackend, "postgresql", &["17.11"]),
-                dependency(LinkKind::DatabaseBackend, "redis", &["8.10.2"]),
+                dependency(LinkKind::DatabaseBackend, "redis", &["8.10.3"]),
             ],
             support_matrix(
                 &[StorageBackend::Sqlite, StorageBackend::Postgres],
@@ -611,34 +709,40 @@ fn build_catalog_with_spark(amd64: bool, spark_images: Option<&spark::Images>) -
             ),
             vec![ControlClass::Target],
         ),
-        catalog_entry(
+        keycloak_entry(
             amd64,
-            "keycloak",
             backends,
-            ComponentKind::IdentityProvider,
-            "Disposable OpenID Connect provider for NUT-21 authentication",
+            adapter_version,
+            KEYCLOAK_VERSION,
+            SupportLifecycle::Preferred,
+            "quay.io/keycloak/keycloak@sha256:c68e286cacd87b942ac1939a0a1481461109d6acd3a57dc496969a319a76bbf0",
+        ),
+        // Superseded family, kept for existing cell locks; new cells are refused it.
+        keycloak_entry(
+            amd64,
+            backends,
             adapter_version,
             "25.0.6",
-            ReleaseChannel::Stable,
+            SupportLifecycle::Deprecated,
             "quay.io/keycloak/keycloak@sha256:82c5b7a110456dbd42b86ea572e728878549954cc8bd03cd65410d75328095d2",
-            BTreeSet::from([CatalogFeature::OidcProvider]),
-            vec![dependency(
-                LinkKind::DatabaseBackend,
-                "postgresql",
-                &["17.11"],
-            )],
-            support_matrix(&[], &[], &[], &[], &[], &[], vec![]),
-            vec![ControlClass::Cell],
         ),
         redis_entry(
             amd64,
             backends,
             adapter_version,
-            "8.10.2",
+            "8.10.3",
             SupportLifecycle::Preferred,
+            "docker.io/library/redis@sha256:1f88291b4c57bdf249f02eb085a8669889b2d2954e91d4de5118a5da6b78dd53",
+        ),
+        // Superseded patches stay resolvable for existing cell locks; new cells are refused them.
+        redis_entry(
+            amd64,
+            backends,
+            adapter_version,
+            "8.10.2",
+            SupportLifecycle::Deprecated,
             "docker.io/library/redis@sha256:2c2dff791878316e3b083188be0d578423b24813cdda5de0e80ea4f7b3e6bfd6",
         ),
-        // Superseded patch stays resolvable for existing cell locks; new cells are refused it.
         redis_entry(
             amd64,
             backends,
@@ -703,7 +807,7 @@ fn build_catalog_with_spark(amd64: bool, spark_images: Option<&spark::Images>) -
             vec![ControlClass::Cell, ControlClass::Workspace],
         ),
         cdk_cli_wallet_entry(amd64, backends, adapter_version),
-        cocod_wallet_entry(amd64, backends, adapter_version),
+        cocod_wallet_entry(amd64, backends, adapter_version, &COCOD_CURRENT),
         catalog_entry(
             amd64,
             "workspace",
@@ -728,6 +832,11 @@ fn build_catalog_with_spark(amd64: bool, spark_images: Option<&spark::Images>) -
             vec![ControlClass::Workspace],
         ),
     ];
+    entries.push(superseded_cocod_wallet_entry(
+        amd64,
+        backends,
+        adapter_version,
+    ));
     for entry in &mut entries {
         if matches!(entry.id.as_str(), "nutshell" | "nutshell-wallet") {
             entry.features.insert(CatalogFeature::NativeCliEntrypoints);
@@ -746,6 +855,7 @@ fn build_catalog_with_spark(amd64: bool, spark_images: Option<&spark::Images>) -
         entry.build_provenance = Some(provenance);
     }
     promote_component_releases(&mut entries, amd64);
+    add_older_family_releases(&mut entries);
     processor::extend(&mut entries, amd64, backends, adapter_version);
     bark::extend(&mut entries, amd64, backends, adapter_version);
     if let Some(images) = spark_images {
@@ -754,16 +864,30 @@ fn build_catalog_with_spark(amd64: bool, spark_images: Option<&spark::Images>) -
     CatalogResponse::try_new(entries).expect("default catalog support contracts are valid")
 }
 
-/// Keep the previous exact entries available for saved locks while new cells
-/// select the current patch and the newest Nutshell release family. Steps run in
-/// order, so one implementation can advance through several patches.
-fn promote_component_releases(entries: &mut Vec<CatalogEntry>, amd64: bool) {
+/// (implementation, new version, image, provenance, lifecycle of the replaced entry)
+type ReleaseStep = (
+    &'static str,
+    &'static str,
+    &'static str,
+    &'static str,
+    SupportLifecycle,
+);
+
+/// Release promotions in order; later steps advance the entry earlier steps produced.
+fn release_steps(amd64: bool) -> Vec<ReleaseStep> {
     let (cdk_0181, cdk_0181_provenance) = crate::wallet_builds::cdk_0181(amd64);
     let (cdk_0182, cdk_0182_provenance) = crate::wallet_builds::cdk_0182(amd64);
+    let (cdk_0183, cdk_0183_provenance) = crate::wallet_builds::cdk_0183(amd64);
+    let cdk_mint_provenance = include_str!("../../../docker/mint/cdk-0.18.3-provenance.json");
+    let bitcoin_0312_provenance =
+        include_str!("../../../docker/bitcoin/bitcoin-31.2-provenance.json");
+    let bitcoin_provenance = include_str!("../../../docker/bitcoin/bitcoin-32.1-provenance.json");
     let nutshell = crate::wallet_builds::nutshell_021(amd64);
     let nutshell_provenance = include_str!("../../../docker/mint/nutshell-0.21.0-provenance.json");
-    // (implementation, new version, image, provenance, lifecycle of the replaced entry)
-    let steps = [
+    let nutshell_0221 = crate::wallet_builds::nutshell_0221(amd64);
+    let nutshell_0221_provenance =
+        include_str!("../../../docker/mint/nutshell-0.22.1-provenance.json");
+    vec![
         (
             "cdk-cli-wallet",
             "0.18.1",
@@ -773,26 +897,77 @@ fn promote_component_releases(entries: &mut Vec<CatalogEntry>, amd64: bool) {
         ),
         (
             "cdk-cli-wallet",
-            CDK_VERSION,
+            "0.18.2",
             cdk_0182,
             cdk_0182_provenance,
             SupportLifecycle::Deprecated,
         ),
         (
+            "cdk-cli-wallet",
+            CDK_VERSION,
+            cdk_0183,
+            cdk_0183_provenance,
+            SupportLifecycle::Deprecated,
+        ),
+        (
+            "cdk",
+            CDK_VERSION,
+            CDK_MINT_IMAGE,
+            cdk_mint_provenance,
+            SupportLifecycle::Deprecated,
+        ),
+        (
+            "bitcoin-core",
+            "31.2",
+            BITCOIN_0312_IMAGE,
+            bitcoin_0312_provenance,
+            SupportLifecycle::Deprecated,
+        ),
+        (
+            "bitcoin-core",
+            BITCOIN_VERSION,
+            BITCOIN_IMAGE,
+            bitcoin_provenance,
+            SupportLifecycle::Supported,
+        ),
+        // The rolling two-family window: 0.22 is current, 0.21 stays
+        // supported, and 0.20 retires to existing locks.
+        (
             "nutshell",
             "0.21.0",
             nutshell,
             nutshell_provenance,
-            SupportLifecycle::Supported,
+            SupportLifecycle::Deprecated,
         ),
         (
             "nutshell-wallet",
             "0.21.0",
             nutshell,
             nutshell_provenance,
+            SupportLifecycle::Deprecated,
+        ),
+        (
+            "nutshell",
+            "0.22.1",
+            nutshell_0221,
+            nutshell_0221_provenance,
             SupportLifecycle::Supported,
         ),
-    ];
+        (
+            "nutshell-wallet",
+            "0.22.1",
+            nutshell_0221,
+            nutshell_0221_provenance,
+            SupportLifecycle::Supported,
+        ),
+    ]
+}
+
+/// Keep the previous exact entries available for saved locks while new cells
+/// select the current patch and the newest Nutshell release family. Steps run in
+/// order, so one implementation can advance through several patches.
+fn promote_component_releases(entries: &mut Vec<CatalogEntry>, amd64: bool) {
+    let steps = release_steps(amd64);
     let mut previous = Vec::new();
     for (id, version, image, encoded, replaced_lifecycle) in steps {
         let entry = entries
@@ -801,12 +976,32 @@ fn promote_component_releases(entries: &mut Vec<CatalogEntry>, amd64: bool) {
             .expect("promoted implementation has a base entry");
         let mut old = entry.clone();
         old.support_lifecycle = replaced_lifecycle;
+        let replaced_version = old.version.clone();
+        let replaced_contract = old.protocol_action_adapter_version.clone();
         entry.version = version.into();
         entry.description = entry.description.replace(&old.version, version);
         entry.image = image.into();
         previous.push(old);
         if entry.id == "nutshell" {
-            entry.protocol_action_adapter_version = Some("nutshell-mint/0.21/v1".into());
+            let family = version
+                .rsplit_once('.')
+                .map_or(version, |(family, _)| family);
+            entry.protocol_action_adapter_version = Some(format!("nutshell-mint/{family}/v1"));
+            // The current release and the one before it; supported mints are
+            // widened to the supported wallet window below.
+            entry.support_matrix.compatible_wallet_adapters = vec![version_support(
+                "nutshell-wallet",
+                &[replaced_version.as_str(), version],
+            )];
+        }
+        // Auth arrives once, when the entry first gains a versioned Nutshell
+        // contract (0.21, the first auth-capable release); later promotions
+        // carry it forward.
+        if entry.id == "nutshell"
+            && !replaced_contract
+                .as_deref()
+                .is_some_and(|contract| contract.starts_with("nutshell-mint/"))
+        {
             entry.runtime_endpoints[0].limitations.push("Enable NUT-21/22 with an authentication_backend link to Keycloak. Auth storage defaults to SQLite; an optional database_backend link with role authentication selects PostgreSQL independently of primary storage. Use auth_max_blind_tokens and auth_rate_limit_per_minute for issuance limits. Endpoint protection follows upstream defaults. Native wallet authentication is supported; typed wallet operations against protected mints are not.".into());
 
             entry
@@ -819,10 +1014,8 @@ fn promote_component_releases(entries: &mut Vec<CatalogEntry>, amd64: bool) {
             entry.compatible_dependencies.push(dependency(
                 LinkKind::AuthenticationBackend,
                 "keycloak",
-                &["25.0.6"],
+                &[KEYCLOAK_VERSION],
             ));
-            entry.support_matrix.compatible_wallet_adapters =
-                vec![version_support("nutshell-wallet", &["0.20.3", "0.21.0"])];
         }
         let provenance: BuildProvenance =
             serde_json::from_str(encoded).expect("promoted release build provenance");
@@ -835,6 +1028,49 @@ fn promote_component_releases(entries: &mut Vec<CatalogEntry>, amd64: bool) {
         entry.build_provenance = Some(provenance);
     }
     entries.extend(previous);
+    // Every supported Nutshell mint pairs with every supported Nutshell wallet
+    // (CI runs each mint family against each wallet family). Deprecated mints
+    // keep the claims they were qualified with.
+    let wallets: Vec<String> = entries
+        .iter()
+        .filter(|entry| entry.id == "nutshell-wallet" && entry.support_lifecycle.is_supported())
+        .map(|entry| entry.version.clone())
+        .collect();
+    let wallets: Vec<&str> = wallets.iter().map(String::as_str).collect();
+    for entry in entries
+        .iter_mut()
+        .filter(|entry| entry.id == "nutshell" && entry.support_lifecycle.is_supported())
+    {
+        entry.support_matrix.compatible_wallet_adapters =
+            vec![version_support("nutshell-wallet", &wallets)];
+    }
+}
+
+/// Older release families in a rolling window: copies of the current entry
+/// with their own image and provenance, so they share its support contract.
+fn add_older_family_releases(entries: &mut Vec<CatalogEntry>) {
+    let releases = [(
+        "bitcoin-core",
+        "30.4",
+        BITCOIN_0304_IMAGE,
+        include_str!("../../../docker/bitcoin/bitcoin-30.4-provenance.json"),
+    )];
+    for (id, version, image, encoded) in releases {
+        let current = entries
+            .iter()
+            .find(|entry| entry.id == id && entry.support_lifecycle == SupportLifecycle::Preferred)
+            .expect("older family has a preferred entry")
+            .clone();
+        let provenance: BuildProvenance =
+            serde_json::from_str(encoded).expect("older family build provenance");
+        let mut entry = current;
+        entry.version = version.into();
+        entry.image = image.into();
+        entry.support_lifecycle = SupportLifecycle::Supported;
+        entry.source_digest = crate::digest_json(&(&entry.source_digest, version, &provenance));
+        entry.build_provenance = Some(provenance);
+        entries.push(entry);
+    }
 }
 
 fn implementation_support(
@@ -1319,7 +1555,7 @@ fn lightning_entry(
         vec![dependency(
             LinkKind::ChainBackend,
             "bitcoin-core",
-            &["31.1"],
+            lightning_chain_versions(id, version),
         )],
         support_matrix(
             &[StorageBackend::PersistentVolume],
@@ -1331,6 +1567,36 @@ fn lightning_entry(
             vec![],
         ),
         vec![ControlClass::Cell, ControlClass::Workspace],
+    )
+}
+
+fn keycloak_entry(
+    amd64: bool,
+    backends: &BackendContractRegistry,
+    adapter_version: &str,
+    version: &str,
+    support_lifecycle: SupportLifecycle,
+    image: &str,
+) -> CatalogEntry {
+    catalog_entry_with_lifecycle(
+        amd64,
+        "keycloak",
+        backends,
+        ComponentKind::IdentityProvider,
+        "Disposable OpenID Connect provider for NUT-21 authentication",
+        adapter_version,
+        version,
+        ReleaseChannel::Stable,
+        support_lifecycle,
+        image,
+        BTreeSet::from([CatalogFeature::OidcProvider]),
+        vec![dependency(
+            LinkKind::DatabaseBackend,
+            "postgresql",
+            &["17.11"],
+        )],
+        support_matrix(&[], &[], &[], &[], &[], &[], vec![]),
+        vec![ControlClass::Cell],
     )
 }
 
@@ -1368,6 +1634,18 @@ fn redis_entry(
     )
 }
 
+/// The Bitcoin Core releases a Lightning release can run against.
+fn lightning_chain_versions(id: &str, version: &str) -> &'static [&'static str] {
+    let lnd_minor = version
+        .strip_prefix("0.")
+        .and_then(|rest| rest.split('.').next())
+        .and_then(|minor| minor.parse::<u32>().ok());
+    match (id, lnd_minor) {
+        ("lnd", Some(minor)) if minor < 21 => BITCOIN_VERSIONS_BEFORE_32,
+        _ => BITCOIN_VERSIONS,
+    }
+}
+
 /// Standalone LDK Server regtest nodes share one contract; the CDK processor
 /// and open-ssp each pin their own revision.
 fn ldk_server_entry(
@@ -1400,7 +1678,7 @@ fn ldk_server_entry(
         vec![dependency(
             LinkKind::ChainBackend,
             "bitcoin-core",
-            &["31.1"],
+            EXPERIMENTAL_BITCOIN_VERSIONS,
         )],
         support_matrix(
             &[StorageBackend::PersistentVolume],
@@ -1492,24 +1770,60 @@ fn cdk_cli_wallet_entry(
     entry
 }
 
-fn cocod_wallet_entry(
+/// One reviewed snapshot of the unreleased cocod daemon.
+struct CocodSnapshot {
+    commit: &'static str,
+    version: &'static str,
+    observations: &'static str,
+    builds: fn(bool) -> (&'static str, &'static str),
+}
+
+/// The current cocod snapshot, offered to new cells.
+const COCOD_CURRENT: CocodSnapshot = CocodSnapshot {
+    commit: "8fd97f38",
+    version: "0.0.17-dev.8fd97f38",
+    observations: "cocod/8fd97f38/observations/v1",
+    builds: crate::wallet_builds::cocod_8fd97f38,
+};
+/// The superseded snapshot, kept for existing cell locks.
+const COCOD_44E5101C: CocodSnapshot = CocodSnapshot {
+    commit: "44e5101c",
+    version: "0.0.17-dev.44e5101c",
+    observations: "cocod/44e5101c/observations/v1",
+    builds: crate::wallet_builds::cocod,
+};
+
+/// The superseded cocod snapshot as a deprecated entry.
+fn superseded_cocod_wallet_entry(
     amd64: bool,
     backends: &BackendContractRegistry,
     adapter_version: &str,
 ) -> CatalogEntry {
-    let (image, encoded) = crate::wallet_builds::cocod(amd64);
+    let mut entry = cocod_wallet_entry(amd64, backends, adapter_version, &COCOD_44E5101C);
+    entry.support_lifecycle = SupportLifecycle::Deprecated;
+    entry
+}
+
+fn cocod_wallet_entry(
+    amd64: bool,
+    backends: &BackendContractRegistry,
+    adapter_version: &str,
+    snapshot: &CocodSnapshot,
+) -> CatalogEntry {
+    let (image, encoded) = (snapshot.builds)(amd64);
+    let platform = if amd64 { "amd64" } else { "arm64" };
+    let description = format!(
+        "Unreleased cocod daemon from Coco {}; experimental Linux {platform} cell build",
+        snapshot.commit
+    );
     let mut entry = catalog_entry(
         amd64,
         "cocod-wallet",
         backends,
         ComponentKind::Wallet,
-        if amd64 {
-            "Unreleased cocod daemon from Coco 44e5101c; experimental Linux amd64 cell build"
-        } else {
-            "Unreleased cocod daemon from Coco 44e5101c; experimental Linux arm64 cell build"
-        },
+        &description,
         adapter_version,
-        "0.0.17-dev.44e5101c",
+        snapshot.version,
         ReleaseChannel::Prerelease,
         image,
         BTreeSet::from([
@@ -1531,7 +1845,7 @@ fn cocod_wallet_entry(
         vec![ControlClass::Cell, ControlClass::Workspace],
     );
     entry.support_lifecycle = SupportLifecycle::Experimental;
-    entry.protocol_action_adapter_version = Some("cocod/44e5101c/observations/v1".into());
+    entry.protocol_action_adapter_version = Some(snapshot.observations.into());
     let provenance: BuildProvenance =
         serde_json::from_str(encoded).expect("pinned wallet build provenance");
     entry.source_digest = crate::digest_json(&(&entry.source_digest, &provenance));
@@ -1964,7 +2278,37 @@ pub fn validate_catalog_component<'a>(
     }
     validate_component_config(component)?;
     crate::native_settings::validate_release_names(component, entry)?;
+    validate_bitcoin_release_settings(component, entry)?;
     Ok(entry)
+}
+
+/// Older Bitcoin Core releases refuse to start on an unknown
+/// `-rpcmaxconnections`, so only 32 and newer accept a non-zero value.
+/// Candidate builds have no release number and are not checked.
+fn validate_bitcoin_release_settings(
+    component: &ComponentSpec,
+    entry: &CatalogEntry,
+) -> Result<(), String> {
+    if entry.id != "bitcoin-core" {
+        return Ok(());
+    }
+    let requested = component
+        .config
+        .get("rpc_max_connections")
+        .and_then(serde_json::Value::as_u64)
+        .unwrap_or(0);
+    let major = entry
+        .version
+        .split('.')
+        .next()
+        .and_then(|major| major.parse::<u32>().ok());
+    match major {
+        Some(major) if requested > 0 && major < 32 => Err(format!(
+            "component {:?} sets rpc_max_connections, which Bitcoin Core {} does not support; it needs Bitcoin Core 32 or newer, or leave it at 0",
+            component.id, entry.version
+        )),
+        _ => Ok(()),
+    }
 }
 
 #[cfg(test)]
@@ -1995,10 +2339,10 @@ mod tests {
                 .iter()
                 .find(|entry| entry.implementation == implementation)
                 .unwrap();
-            assert_eq!(support.minimum_supported.as_deref(), Some("0.18.2"));
+            assert_eq!(support.minimum_supported.as_deref(), Some("0.18.3"));
             assert_eq!(
                 support.supported_versions,
-                BTreeSet::from(["0.18.2".into()])
+                BTreeSet::from(["0.18.3".into()])
             );
         }
     }
@@ -2084,7 +2428,7 @@ mod tests {
     }
 
     #[test]
-    fn busybox_and_saved_workspace_locks_use_the_upstream_pin() {
+    fn busybox_and_saved_workspace_locks_use_the_mirrored_upstream_pin() {
         let sha = "73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662";
         let upstream = format!("docker.io/library/busybox@sha256:{sha}");
         let workspace = default_catalog()
@@ -2093,17 +2437,58 @@ mod tests {
             .find(|entry| entry.id == "workspace")
             .unwrap();
         assert_eq!(workspace.image, mirror_image(&upstream));
-        for image in [&upstream, &workspace.image] {
-            assert_eq!(catalog_image_source(image).unwrap(), upstream);
-        }
+        let mirrored = format!("{UPSTREAM_MIRROR}@sha256:{sha}");
+        assert_eq!(catalog_image_source(&workspace.image).unwrap(), mirrored);
+        assert_eq!(upstream_origin(&workspace.image).unwrap(), upstream);
+        assert_eq!(catalog_image_source(&upstream).unwrap(), upstream);
         for image in [
             format!("docker.io/library/busybox@sha256:{}", "a".repeat(64)),
             format!("docker.io/example/busybox@sha256:{sha}"),
             format!("example.org/library/busybox@sha256:{sha}"),
         ] {
             assert_eq!(catalog_image_source(&image).unwrap(), image);
-            assert_eq!(catalog_image_source(&mirror_image(&image)).unwrap(), image);
+            let local = mirror_image(&image);
+            if local == image {
+                // Only Docker Hub and Quay images are mirrored.
+                assert_eq!(catalog_image_source(&local).unwrap(), image);
+            } else {
+                let digest = image.split_once('@').unwrap().1;
+                assert_eq!(
+                    catalog_image_source(&local).unwrap(),
+                    format!("{UPSTREAM_MIRROR}@{digest}")
+                );
+                assert_eq!(upstream_origin(&local).unwrap(), image);
+            }
         }
+    }
+
+    #[test]
+    fn rpc_max_connections_is_refused_before_bitcoin_core_32() {
+        let catalog = default_catalog();
+        let mut component = ComponentSpec {
+            resources: None,
+            id: "chain".into(),
+            kind: ComponentKind::Bitcoin,
+            implementation: "bitcoin-core".into(),
+            version: Some("31.2".into()),
+            config_version: "bitcoin-core/31/v1".into(),
+            control: ControlClass::Cell,
+            config: BTreeMap::from([("rpc_max_connections".into(), serde_json::json!(64))]),
+        };
+        let error = validate_catalog_component(&component, catalog).unwrap_err();
+        assert!(error.contains("needs Bitcoin Core 32 or newer"), "{error}");
+        component.version = Some(BITCOIN_VERSION.into());
+        assert_eq!(
+            validate_catalog_component(&component, catalog)
+                .unwrap()
+                .version,
+            "32.1"
+        );
+        component.version = Some("31.2".into());
+        component
+            .config
+            .insert("rpc_max_connections".into(), serde_json::json!(0));
+        assert!(validate_catalog_component(&component, catalog).is_ok());
     }
 
     #[test]
@@ -2119,14 +2504,14 @@ mod tests {
             .build_provenance
             .as_ref()
             .expect("Bitcoin release provenance");
-        assert_eq!(bitcoin.version, "31.1");
+        assert_eq!(bitcoin.version, "32.1");
         assert_eq!(bitcoin.config_version, "bitcoin-core/31/v1");
         assert_eq!(provenance.platform, "linux/amd64,linux/arm64");
         assert_eq!(
             provenance.recipe_digest,
             format!(
                 "sha256:{:x}",
-                Sha256::digest(include_bytes!("../../../docker/bitcoin/Dockerfile"))
+                Sha256::digest(include_bytes!("../../../docker/bitcoin/Dockerfile.32.1"))
             )
         );
         for entry in &catalog.entries {
@@ -2147,7 +2532,7 @@ mod tests {
     #[test]
     fn management_clients_have_matching_build_provenance() {
         use sha2::{Digest, Sha256};
-        let recipe = include_bytes!("../../../docker/mint/Dockerfile.cdk-0.18.2");
+        let recipe = include_bytes!("../../../docker/mint/Dockerfile.cdk-0.18.3");
         {
             let entry = default_catalog()
                 .entries
@@ -2162,7 +2547,7 @@ mod tests {
             assert!(entry.features.contains(&CatalogFeature::MintManagementRpc));
             assert_eq!(
                 provenance.commit_sha,
-                "9f6d3a3734d7223d10b5553e3591d3f9d5c6c904"
+                "b2035a3525c98b22226926bdc20fa128a1351ae5"
             );
         }
     }
@@ -2201,14 +2586,14 @@ mod tests {
             .find(|entry| entry.id == "cdk-cli-wallet")
             .expect("CDK wallet");
         let provenance = entry.build_provenance.as_ref().expect("release provenance");
-        let recipe = include_bytes!("../../../docker/wallet/Dockerfile.cdk-0.18.2");
+        let recipe = include_bytes!("../../../docker/wallet/Dockerfile.cdk-0.18.3");
         assert_eq!(
             provenance.recipe_digest,
             format!("sha256:{:x}", Sha256::digest(recipe))
         );
         assert_eq!(
             provenance.commit_sha,
-            "9f6d3a3734d7223d10b5553e3591d3f9d5c6c904"
+            "b2035a3525c98b22226926bdc20fa128a1351ae5"
         );
         assert_eq!(
             provenance.platform,
@@ -2236,7 +2621,10 @@ mod tests {
         let entry = default_catalog()
             .entries
             .iter()
-            .find(|entry| entry.id == "cocod-wallet")
+            .find(|entry| {
+                entry.id == "cocod-wallet"
+                    && entry.support_lifecycle == SupportLifecycle::Experimental
+            })
             .expect("cocod wallet");
         let provenance = entry.build_provenance.as_ref().expect("source provenance");
         assert_eq!(
@@ -2244,18 +2632,18 @@ mod tests {
             format!(
                 "sha256:{:x}",
                 Sha256::digest(include_bytes!(
-                    "../../../docker/wallet/Dockerfile.kube-cocod"
+                    "../../../docker/wallet/Dockerfile.cocod-8fd97f38"
                 ))
             )
         );
         assert_eq!(
             provenance.commit_sha,
-            "44e5101cbea370132af6e68f88e01b47e39431c4"
+            "8fd97f3857a744a9f053a0886d71c5f31c38f70f"
         );
         assert_eq!(provenance.package_path.as_deref(), Some("packages/cocod"));
         assert_eq!(
             provenance.dependency_lock_digest.as_deref(),
-            Some("sha256:8c6bc502e3fa1178e3efbb56f86ef8a92d1e9612952a3f8d7268e2de7e611055")
+            Some("sha256:5bf5a544c6184714c5a80d8bfd3b3c246b438a62b4748f72c0be677af19eaafb")
         );
         assert_eq!(entry.support_lifecycle, SupportLifecycle::Experimental);
         let controls = &entry.runtime_endpoints[0].controls;
@@ -2273,18 +2661,22 @@ mod tests {
     )]
     fn catalog_support_summary_is_exact_and_invariants_fail_closed() {
         let catalog = catalog_for_platform(CatalogPlatform::LinuxArm64);
-        assert_eq!(catalog.entries.len(), 30);
+        assert_eq!(catalog.entries.len(), 47);
         assert_eq!(catalog.implementations.len(), 20);
         let lnd = catalog
             .implementations
             .iter()
             .find(|support| support.implementation == "lnd")
             .expect("LND support summary");
-        assert_eq!(lnd.minimum_supported.as_deref(), Some("0.20.5-beta"));
-        assert_eq!(lnd.preferred_version.as_deref(), Some("0.21.4-beta"));
+        assert_eq!(lnd.minimum_supported.as_deref(), Some("0.19.3-beta"));
+        assert_eq!(lnd.preferred_version.as_deref(), Some("0.21.8-beta"));
         assert_eq!(
             lnd.supported_versions,
-            BTreeSet::from(["0.20.5-beta".into(), "0.21.4-beta".into()])
+            BTreeSet::from([
+                "0.19.3-beta".into(),
+                "0.20.8-beta".into(),
+                "0.21.8-beta".into()
+            ])
         );
         assert!(catalog.implementations.iter().all(|support| {
             matches!(
@@ -2298,13 +2690,14 @@ mod tests {
                     | "spark-operators"
                     | "open-ssp"
                     | "cdk-spark-processor"
-            ) || support.implementation == "lnd"
-                || matches!(
-                    support.implementation.as_str(),
-                    "nutshell" | "nutshell-wallet"
-                )
-                || support.minimum_supported == support.preferred_version
-                    && support.supported_versions.len() == 1
+            ) || matches!(
+                support.implementation.as_str(),
+                "lnd" | "cln" | "bitcoin-core"
+            ) || matches!(
+                support.implementation.as_str(),
+                "nutshell" | "nutshell-wallet"
+            ) || support.minimum_supported == support.preferred_version
+                && support.supported_versions.len() == 1
         }));
 
         let mut duplicate = catalog.entries.clone();
@@ -2404,15 +2797,18 @@ mod tests {
     fn promoted_releases_keep_exact_historical_entries_and_current_defaults() {
         for platform in [CatalogPlatform::LinuxArm64, CatalogPlatform::LinuxAmd64] {
             let catalog = catalog_for_platform(platform);
-            let cdk_versions = catalog
+            let cdk_lifecycles = catalog
                 .entries
                 .iter()
                 .filter(|entry| entry.id == "cdk")
-                .map(|entry| entry.version.as_str())
-                .collect::<Vec<_>>();
+                .map(|entry| (entry.version.as_str(), entry.support_lifecycle))
+                .collect::<BTreeMap<_, _>>();
             assert_eq!(
-                cdk_versions,
-                ["0.18.2"],
+                cdk_lifecycles,
+                BTreeMap::from([
+                    ("0.18.2", SupportLifecycle::Deprecated),
+                    ("0.18.3", SupportLifecycle::Preferred),
+                ]),
                 "the CDK mint has one current entry"
             );
             let wallet_lifecycles = catalog
@@ -2426,13 +2822,14 @@ mod tests {
                 BTreeMap::from([
                     ("0.18.0", SupportLifecycle::Deprecated),
                     ("0.18.1", SupportLifecycle::Deprecated),
-                    ("0.18.2", SupportLifecycle::Preferred),
+                    ("0.18.2", SupportLifecycle::Deprecated),
+                    ("0.18.3", SupportLifecycle::Preferred),
                 ])
             );
             for id in ["cdk-cli-wallet", "nutshell", "nutshell-wallet"] {
                 let cdk = id.starts_with("cdk");
                 let old_version = if cdk { "0.18.0" } else { "0.20.3" };
-                let version = if cdk { "0.18.2" } else { "0.21.0" };
+                let version = if cdk { "0.18.3" } else { "0.22.1" };
                 let support = catalog
                     .implementations
                     .iter()
@@ -2449,14 +2846,7 @@ mod tests {
                     .iter()
                     .find(|entry| entry.id == id && entry.version == version)
                     .unwrap();
-                assert_eq!(
-                    old.support_lifecycle,
-                    if cdk {
-                        SupportLifecycle::Deprecated
-                    } else {
-                        SupportLifecycle::Supported
-                    }
-                );
+                assert_eq!(old.support_lifecycle, SupportLifecycle::Deprecated);
                 assert_eq!(current.support_lifecycle, SupportLifecycle::Preferred);
                 assert_ne!(old.image, current.image);
                 assert_ne!(old.source_digest, current.source_digest);
@@ -2464,15 +2854,24 @@ mod tests {
                 assert_eq!(
                     current.build_provenance.as_ref().unwrap().commit_sha,
                     if cdk {
-                        "9f6d3a3734d7223d10b5553e3591d3f9d5c6c904"
+                        "b2035a3525c98b22226926bdc20fa128a1351ae5"
                     } else {
-                        "a9749146c6bd7f9ab75375a050e9ba795cee301c"
+                        "3ab0137b0c6b214cecc2f883be606a668ae74e60"
                     }
                 );
+                if !cdk {
+                    // The previous family stays supported for new cells.
+                    let previous = catalog
+                        .entries
+                        .iter()
+                        .find(|entry| entry.id == id && entry.version == "0.21.0")
+                        .unwrap();
+                    assert_eq!(previous.support_lifecycle, SupportLifecycle::Supported);
+                }
                 if id == "nutshell" {
                     assert_eq!(
                         current.protocol_action_adapter_version.as_deref(),
-                        Some("nutshell-mint/0.21/v1")
+                        Some("nutshell-mint/0.22/v1")
                     );
                     assert_eq!(
                         old.protocol_action_adapter_version.as_deref(),

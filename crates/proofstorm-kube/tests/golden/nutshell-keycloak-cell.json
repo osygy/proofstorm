@@ -69,6 +69,7 @@
       "effective_config": {
         "config": {
           "fallback_fee": 0.0002,
+          "rpc_max_connections": 0,
           "txindex": true
         },
         "implementation": "bitcoin-core"
@@ -78,7 +79,7 @@
         "environment": {
           "HOME": "/home/bitcoin"
         },
-        "image": "proofstorm-registry.localhost:5000/bitcoin-core@sha256:b3faffac8d3414faf57df61889c354d15fb2851782c2002251ea8df5be358ad6",
+        "image": "proofstorm-registry.localhost:5000/bitcoin-core@sha256:cfec5b592dfea4af2b3e715649c95ca07885d219b651e4a7844ba52750deb331",
         "mounts": [
           {
             "mount_path": "/home/bitcoin/.bitcoin",
@@ -146,7 +147,7 @@
       },
       "relevant_links": [],
       "revision_digest": "sha256:b2-golden-revision",
-      "rollout_digest": "sha256:b6806f3bbe1134cecfc9f6686e7c393babbbe36f0ce925109d8b2556566e04ec",
+      "rollout_digest": "sha256:1113fac6b43e71211cd4a1b52d96c8258cf8132cd9f9dad8dc65d938eb28e561",
       "storage": [
         {
           "claim_name": "data-chain-0"
@@ -162,7 +163,7 @@
           "zmq_block": 28334,
           "zmq_tx": 28335
         },
-        "version": "31.1"
+        "version": "32.1"
       },
       "workload": {
         "desired_replicas": 1,
@@ -243,8 +244,10 @@
       },
       "execution_context": {
         "component_id": "identity",
-        "environment": {},
-        "image": "proofstorm-registry.localhost:5000/upstream/quay.io/keycloak/keycloak@sha256:82c5b7a110456dbd42b86ea572e728878549954cc8bd03cd65410d75328095d2",
+        "environment": {
+          "PROOFSTORM_KEYCLOAK_VERSION": "26.8.2"
+        },
+        "image": "proofstorm-registry.localhost:5000/upstream/quay.io/keycloak/keycloak@sha256:c68e286cacd87b942ac1939a0a1481461109d6acd3a57dc496969a319a76bbf0",
         "mounts": [],
         "state_contract": "proofstorm/keycloak-oidc-state/v1"
       },
@@ -325,7 +328,7 @@
         }
       ],
       "revision_digest": "sha256:b2-golden-revision",
-      "rollout_digest": "sha256:8af017d5f6eb553e46ef8fb13a191adc4a279b0adcda10641737d5fbf1839917",
+      "rollout_digest": "sha256:7c98fbfe1633d713236fc65e5f75367ccb44bb91c4d227553e7c1f884c75d8d1",
       "storage": [],
       "target_descriptor": {
         "backend_id": "keycloak",
@@ -334,7 +337,7 @@
         "ports": {
           "http": 8080
         },
-        "version": "25.0.6"
+        "version": "26.8.2"
       },
       "workload": {
         "desired_replicas": 1,
@@ -592,7 +595,7 @@
         "environment": {
           "HOME": "/home/lnd"
         },
-        "image": "proofstorm-registry.localhost:5000/upstream/docker.io/lightninglabs/lnd@sha256:04d06edcc0f6e99a5e797ea34959f330add222226f840cd86afbc31f8f29627d",
+        "image": "proofstorm-registry.localhost:5000/upstream/docker.io/lightninglabs/lnd@sha256:f17b2944b1b76396cccbe58feac469b6cefb5f407557ac77f0880f136fb935f9",
         "mounts": [
           {
             "mount_path": "/home/lnd/.lnd",
@@ -618,7 +621,7 @@
             "zmq_block": 28334,
             "zmq_tx": 28335
           },
-          "version": "31.1"
+          "version": "32.1"
         }
       },
       "operation_admission": [
@@ -684,7 +687,7 @@
         }
       ],
       "revision_digest": "sha256:b2-golden-revision",
-      "rollout_digest": "sha256:45333e7954cae96e4f70473861c27a3967716e3fcaae88cf5fd7bd479ecc7b39",
+      "rollout_digest": "sha256:765be71e588f82a9854d80535cb280381e7d6c5735e776b4e6c32041d175c85c",
       "storage": [
         {
           "claim_name": "data-lightning-0"
@@ -699,7 +702,7 @@
           "rest": 8080,
           "rpc": 10009
         },
-        "version": "0.21.4-beta"
+        "version": "0.21.8-beta"
       },
       "workload": {
         "desired_replicas": 1,
@@ -877,7 +880,7 @@
           "ports": {
             "http": 8080
           },
-          "version": "25.0.6"
+          "version": "26.8.2"
         },
         "mint-lightning-lightning": {
           "backend_id": "lnd",
@@ -888,7 +891,7 @@
             "rest": 8080,
             "rpc": 10009
           },
-          "version": "0.21.4-beta"
+          "version": "0.21.8-beta"
         }
       },
       "operation_admission": [
@@ -1101,7 +1104,7 @@
           "template": {
             "metadata": {
               "annotations": {
-                "proofstorm.dev/rollout-digest": "sha256:8af017d5f6eb553e46ef8fb13a191adc4a279b0adcda10641737d5fbf1839917"
+                "proofstorm.dev/rollout-digest": "sha256:7c98fbfe1633d713236fc65e5f75367ccb44bb91c4d227553e7c1f884c75d8d1"
               },
               "labels": {
                 "app.kubernetes.io/managed-by": "proofstormd",
@@ -1169,7 +1172,7 @@
                       "value": "-XX:InitialRAMPercentage=10 -XX:MaxRAMPercentage=45"
                     },
                     {
-                      "name": "KEYCLOAK_ADMIN",
+                      "name": "KC_BOOTSTRAP_ADMIN_USERNAME",
                       "value": "proofstorm-admin"
                     },
                     {
@@ -1181,7 +1184,7 @@
                       "value": "300"
                     },
                     {
-                      "name": "KEYCLOAK_ADMIN_PASSWORD",
+                      "name": "KC_BOOTSTRAP_ADMIN_PASSWORD",
                       "valueFrom": {
                         "secretKeyRef": {
                           "key": "KEYCLOAK_ADMIN_PASSWORD",
@@ -1190,7 +1193,7 @@
                       }
                     }
                   ],
-                  "image": "proofstorm-registry.localhost:5000/upstream/quay.io/keycloak/keycloak@sha256:82c5b7a110456dbd42b86ea572e728878549954cc8bd03cd65410d75328095d2",
+                  "image": "proofstorm-registry.localhost:5000/upstream/quay.io/keycloak/keycloak@sha256:c68e286cacd87b942ac1939a0a1481461109d6acd3a57dc496969a319a76bbf0",
                   "imagePullPolicy": "IfNotPresent",
                   "name": "component",
                   "ports": [
@@ -2126,7 +2129,7 @@
           "template": {
             "metadata": {
               "annotations": {
-                "proofstorm.dev/rollout-digest": "sha256:b6806f3bbe1134cecfc9f6686e7c393babbbe36f0ce925109d8b2556566e04ec"
+                "proofstorm.dev/rollout-digest": "sha256:1113fac6b43e71211cd4a1b52d96c8258cf8132cd9f9dad8dc65d938eb28e561"
               },
               "labels": {
                 "app.kubernetes.io/managed-by": "proofstormd",
@@ -2157,7 +2160,7 @@
                   "command": [
                     "bitcoind"
                   ],
-                  "image": "proofstorm-registry.localhost:5000/bitcoin-core@sha256:b3faffac8d3414faf57df61889c354d15fb2851782c2002251ea8df5be358ad6",
+                  "image": "proofstorm-registry.localhost:5000/bitcoin-core@sha256:cfec5b592dfea4af2b3e715649c95ca07885d219b651e4a7844ba52750deb331",
                   "imagePullPolicy": "IfNotPresent",
                   "name": "component",
                   "readinessProbe": {
@@ -2455,7 +2458,7 @@
           "template": {
             "metadata": {
               "annotations": {
-                "proofstorm.dev/rollout-digest": "sha256:45333e7954cae96e4f70473861c27a3967716e3fcaae88cf5fd7bd479ecc7b39"
+                "proofstorm.dev/rollout-digest": "sha256:765be71e588f82a9854d80535cb280381e7d6c5735e776b4e6c32041d175c85c"
               },
               "labels": {
                 "app.kubernetes.io/managed-by": "proofstormd",
@@ -2491,7 +2494,7 @@
                   "command": [
                     "lnd"
                   ],
-                  "image": "proofstorm-registry.localhost:5000/upstream/docker.io/lightninglabs/lnd@sha256:04d06edcc0f6e99a5e797ea34959f330add222226f840cd86afbc31f8f29627d",
+                  "image": "proofstorm-registry.localhost:5000/upstream/docker.io/lightninglabs/lnd@sha256:f17b2944b1b76396cccbe58feac469b6cefb5f407557ac77f0880f136fb935f9",
                   "imagePullPolicy": "IfNotPresent",
                   "name": "component",
                   "readinessProbe": {

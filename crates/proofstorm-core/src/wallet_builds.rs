@@ -16,6 +16,20 @@ pub(crate) fn cdk(amd64: bool) -> (&'static str, &'static str) {
     }
 }
 
+pub(crate) fn cdk_0183(amd64: bool) -> (&'static str, &'static str) {
+    if amd64 {
+        (
+            "proofstorm-registry.localhost:5000/cdk-cli-wallet@sha256:40a12e1389a1c581b1b1effc473649a09001e3ad48b5168ed4440dfe02610d9f",
+            include_str!("../../../docker/wallet/cdk-cli-0.18.3-linux-amd64-provenance.json"),
+        )
+    } else {
+        (
+            "proofstorm-registry.localhost:5000/cdk-cli-wallet@sha256:a76ebae6bd338ba7e538a23fb8e0b8a6fea15ad95beda18f4b9c13873f1a5f3a",
+            include_str!("../../../docker/wallet/cdk-cli-0.18.3-provenance.json"),
+        )
+    }
+}
+
 pub(crate) fn cdk_0182(amd64: bool) -> (&'static str, &'static str) {
     if amd64 {
         (
@@ -44,11 +58,33 @@ pub(crate) fn cdk_0181(amd64: bool) -> (&'static str, &'static str) {
     }
 }
 
+pub(crate) fn nutshell_0221(amd64: bool) -> &'static str {
+    if amd64 {
+        "proofstorm-registry.localhost:5000/nutshell-mint@sha256:b4262dbc0eb78e5c7c3b8aa971ce41e1ecf916a9227ff81274a9a7614971ff3d"
+    } else {
+        "proofstorm-registry.localhost:5000/nutshell-mint@sha256:3e2fe1a1f5569d38e545dddff890066899cc289cd8cc86c36b3e4584542f2576"
+    }
+}
+
 pub(crate) fn nutshell_021(amd64: bool) -> &'static str {
     if amd64 {
         "proofstorm-registry.localhost:5000/nutshell-mint@sha256:902461e83918af77a7b82ba2b08ef1709989fc81394ed18191d4bd7e60cdd846"
     } else {
         "proofstorm-registry.localhost:5000/nutshell-mint@sha256:f0c0e8a710e519774b0880841aac6c128471260cbc51da6306cfe60e9b08deda"
+    }
+}
+
+pub(crate) fn cocod_8fd97f38(amd64: bool) -> (&'static str, &'static str) {
+    if amd64 {
+        (
+            "proofstorm-registry.localhost:5000/cocod-wallet@sha256:8cc888e0a1fd96cf3a72916303d5d967b1b536cd9136f5221fcacfb02b767b25",
+            include_str!("../../../docker/wallet/cocod-8fd97f38-linux-amd64-provenance.json"),
+        )
+    } else {
+        (
+            "proofstorm-registry.localhost:5000/cocod-wallet@sha256:52f4c84a149ced85103e48b6ef82cd9c33b621865fc7ab04d29b62568f163a22",
+            include_str!("../../../docker/wallet/cocod-8fd97f38-provenance.json"),
+        )
     }
 }
 
@@ -81,7 +117,7 @@ mod tests {
     #[test]
     fn wallet_builds_have_distinct_pins_and_matching_provenance() {
         assert_ne!(nutshell(true), nutshell(false));
-        for builds in [cdk, cdk_0181, cdk_0182, cocod] {
+        for builds in [cdk, cdk_0181, cdk_0182, cdk_0183, cocod, cocod_8fd97f38] {
             assert_ne!(builds(true).0, builds(false).0);
             for amd64 in [false, true] {
                 let (image, encoded) = builds(amd64);

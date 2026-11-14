@@ -130,18 +130,21 @@ Failed, missing, duplicate, skipped or stale evidence cannot qualify a merge.
   valid/invalid CAT and BAT checks, BAT issuance and DLEQ verification, the
   issuance limit, a protected request, and spent-token rejection after restart.
   Controller restart must preserve generated identity/database credentials.
-- Nutshell 0.21.0 auth is covered by `nutshell-oidc`, using SQLite primary
+- Nutshell 0.22.1 and 0.21.0 auth are each covered by `nutshell-oidc`, using SQLite primary
   storage and both SQLite and PostgreSQL auth stores. It verifies the upstream
   NUT-21/22 error codes and CAT rate limit in addition to issuance, DLEQ,
-  protected requests and spent-token rejection across restart. The retained
+  protected requests and spent-token rejection across restart. The deprecated
   0.20.3 release remains unauthenticated because its recorded live run fails
   blind-auth issuance. No local schema workaround or candidate image substitutes
   for released-image qualification. Keycloak also remains independently
   qualified for discovery, valid/invalid logins, generated credentials, signing
   keys and restart persistence.
-- CLN uses the 26.06.9 security point release
-  ([upstream release notes](https://github.com/ElementsProject/lightning/releases/tag/v26.06.9)).
-  Historical release receipts for 26.06.7 are not evidence for 26.06.9.
+- CLN uses the 26.06.10 security point release
+  ([upstream release notes](https://github.com/ElementsProject/lightning/releases/tag/v26.06.10)).
+  Historical release receipts for 26.06.9 and 26.06.7 are not evidence for 26.06.10.
+- LND uses 0.21.8-beta and 0.20.8-beta, which include the 0.21.6/0.20.7 MPTCP
+  listener mitigation for CVE-2026-98432
+  ([upstream release notes](https://github.com/lightningnetwork/lnd/releases/tag/v0.21.6-beta)).
 
 ## Local use and diagnostics
 

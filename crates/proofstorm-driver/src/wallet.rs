@@ -105,11 +105,25 @@ pub fn coco(path: &Path, wallet: &str, mint: &str, mint_url: &str) -> Result<Val
     let migrations = migrations
         .query_map([], |row| row.get::<_, String>(0))?
         .collect::<Result<BTreeSet<_>, _>>()?;
-    let latest = "038_keypair_derivation_allocations";
-    ensure!(
-        migrations.contains(latest) && migrations.iter().all(|id| id.as_str() <= latest),
-        "wallet_schema_mismatch"
-    );
+    // The reviewed cocod snapshots, identified by their newest migration. Any
+    // other schema is refused rather than guessed.
+    let (_, source, pending_state) = [
+        (
+            "046_keyset_final_expiry",
+            "cocod/8fd97f38/sqlite-read-transaction/v1",
+            true,
+        ),
+        (
+            "038_keypair_derivation_allocations",
+            "cocod/44e5101c/sqlite-read-transaction/v1",
+            false,
+        ),
+    ]
+    .into_iter()
+    .find(|(latest, _, _)| {
+        migrations.contains(*latest) && migrations.iter().all(|id| id.as_str() <= *latest)
+    })
+    .context("wallet_schema_mismatch")?;
     ensure!(
         db.query_row(
             "SELECT EXISTS(SELECT 1 FROM coco_cashu_mints WHERE mintUrl=?1)",
@@ -136,6 +150,9 @@ pub fn coco(path: &Path, wallet: &str, mint: &str, mint_url: &str) -> Result<Val
             "ready" if owner.is_some_and(|owner| !owner.is_empty()) => "reserved",
             "ready" => "spendable",
             "inflight" => "inflight",
+            // Mint-held proofs (migration 043), e.g. a melt the mint reports
+            // PENDING: unspent but neither spendable nor settled.
+            "pending" if pending_state => "inflight",
             "spent" => "spent",
             _ => bail!("wallet_proof_state_invalid"),
         };
@@ -145,7 +162,7 @@ pub fn coco(path: &Path, wallet: &str, mint: &str, mint_url: &str) -> Result<Val
     Ok(json!({"wallet":wallet,"mint":mint,"unit":"sat",
         "balance_sat":amounts["spendable"],"reserved_sat":amounts["reserved"],
         "inflight_sat":amounts["inflight"],"total_ready_sat":amounts["spendable"]+amounts["reserved"],
-        "observation_source":"cocod/44e5101c/sqlite-read-transaction/v1","observed_at_unix":now()?}))
+        "observation_source":source,"observed_at_unix":now()?}))
 }
 
 /// Observe every sat mint held by a native wallet, preserving unknown/error semantics.

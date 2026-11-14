@@ -93,6 +93,12 @@ pub(super) const ADDED_VERSIONS: &[(&str, &str, &str, &str)] = &[
         "fe468cad486157683eddbc0df4ff87ba71b6c0a3\n",
     ),
     (
+        "cdk-ldk-server-processor",
+        "0.1.0-d7244e2",
+        "docker/payment/cdk-ldk-server-d7244e2-provenance.json",
+        "d7244e261506b51d5b309a558bf19cd4ffc32f13\n",
+    ),
+    (
         "cdk-mint",
         "0.18.1",
         "docker/mint/cdk-0.18.1-provenance.json",
@@ -117,6 +123,18 @@ pub(super) const ADDED_VERSIONS: &[(&str, &str, &str, &str)] = &[
         "cdk-cli 0.18.2\n",
     ),
     (
+        "cdk-mint",
+        "0.18.3",
+        "docker/mint/cdk-0.18.3-provenance.json",
+        "cdk-mint-rpc 0.18.3\ncdk-mintd 0.18.3\n",
+    ),
+    (
+        "cdk-cli-wallet",
+        "0.18.3",
+        "docker/wallet/cdk-cli-0.18.3-provenance.json",
+        "cdk-cli 0.18.3\n",
+    ),
+    (
         "bitcoin-core",
         "29.4",
         "docker/bitcoin/bitcoin-29.4-provenance.json",
@@ -129,10 +147,34 @@ pub(super) const ADDED_VERSIONS: &[(&str, &str, &str, &str)] = &[
         "Bitcoin Core daemon version v30.3.0 bitcoind\n",
     ),
     (
+        "bitcoin-core",
+        "31.2",
+        "docker/bitcoin/bitcoin-31.2-provenance.json",
+        "Bitcoin Core daemon version v31.2.0 bitcoind\n",
+    ),
+    (
+        "bitcoin-core",
+        "30.4",
+        "docker/bitcoin/bitcoin-30.4-provenance.json",
+        "Bitcoin Core daemon version v30.4.0 bitcoind\n",
+    ),
+    (
+        "bitcoin-core",
+        "32.1",
+        "docker/bitcoin/bitcoin-32.1-provenance.json",
+        "Bitcoin Core daemon version v32.1.0 bitcoind\n",
+    ),
+    (
         "nutshell-mint",
         "0.21.0",
         "docker/mint/nutshell-0.21.0-provenance.json",
         "Nutshell, version 0.21.0\nUsage: cashu [OPTIONS] COMMAND [ARGS]...\nUsage: mint-cli [OPTIONS] COMMAND [ARGS]...\n",
+    ),
+    (
+        "nutshell-mint",
+        "0.22.1",
+        "docker/mint/nutshell-0.22.1-provenance.json",
+        "Nutshell, version 0.22.1\nUsage: cashu [OPTIONS] COMMAND [ARGS]...\nUsage: mint-cli [OPTIONS] COMMAND [ARGS]...\n",
     ),
     (
         "ldk-server",
@@ -380,12 +422,12 @@ fn cocod_external_context_cannot_drift_or_become_a_link() {
             .to_string(),
     )
     .unwrap();
-    verify_cocod_archive(&work).unwrap();
+    verify_cocod_archive(&work, None).unwrap();
     fs::write(work.join("context/source.tar.gz"), b"changed").unwrap();
-    assert!(verify_cocod_archive(&work).is_err());
+    assert!(verify_cocod_archive(&work, None).is_err());
     fs::rename(work.join("context/source.tar.gz"), work.join("outside")).unwrap();
     std::os::unix::fs::symlink(work.join("outside"), work.join("context/source.tar.gz")).unwrap();
-    assert!(verify_cocod_archive(&work).is_err());
+    assert!(verify_cocod_archive(&work, None).is_err());
 }
 
 fn receipt() -> Receipt {
@@ -570,4 +612,38 @@ fn local_probes_bind_both_platforms_to_clean_source_and_immutable_ids() {
         .unwrap();
         assert!(load(&work).is_err());
     }
+}
+
+#[test]
+fn every_third_party_image_is_mirrored_and_anonymously_verified() {
+    let receipt: Value = serde_json::from_str(
+        &fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../release/upstream-mirror.json"),
+        )
+        .expect("release/upstream-mirror.json; run just upstream-mirror publish and verify"),
+    )
+    .unwrap();
+    assert_eq!(receipt["repository"], proofstorm_core::UPSTREAM_MIRROR);
+    let mirrored: BTreeSet<String> = receipt["images"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|image| {
+            image["anonymous_verified"]["linux/amd64"] == true
+                && image["anonymous_verified"]["linux/arm64"] == true
+                && image["image"]
+                    .as_str()
+                    .zip(image["origin"].as_str())
+                    .is_some_and(|(mirror, origin)| {
+                        mirror.split_once('@').map(|(_, digest)| digest)
+                            == origin.split_once('@').map(|(_, digest)| digest)
+                    })
+        })
+        .filter_map(|image| image["origin"].as_str().map(ToString::to_string))
+        .collect();
+    let missing: Vec<_> = upstream_origins().difference(&mirrored).cloned().collect();
+    assert!(
+        missing.is_empty(),
+        "mirror these pins before shipping: just upstream-mirror publish, then verify: {missing:?}"
+    );
 }

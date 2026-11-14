@@ -22,8 +22,8 @@ funding and receiving payments, and a CDK CLI wallet. No new MCP tools are neede
 
 | Component | Version | Upstream source |
 | --- | --- | --- |
-| CDK mint | `0.18.2` | [CDK](https://github.com/cashubtc/cdk/tree/v0.18.2) |
-| Processor | `0.1.0-fe468ca` | [CDK payment processors](https://github.com/cashubtc/cdk-payment-processors/tree/fe468cad486157683eddbc0df4ff87ba71b6c0a3/crates/ldk-server) |
+| CDK mint | `0.18.3` | [CDK](https://github.com/cashubtc/cdk/tree/v0.18.3) |
+| Processor | `0.1.0-d7244e2` | [CDK payment processors](https://github.com/cashubtc/cdk-payment-processors/tree/d7244e261506b51d5b309a558bf19cd4ffc32f13/crates/ldk-server) |
 | Node and CLI | `0.1.0-50fe752` | [LDK Server](https://github.com/lightningdevkit/ldk-server/tree/50fe7523be3529d86bfee0dfc35df9a52aca7310) |
 
 Both new components are experimental and require an explicit version. The
@@ -90,7 +90,7 @@ its offline image probe checks the executable and source revision marker. Live
 readiness separately verifies the actual gRPC service.
 
 Maintainer selectors are `ldk-server@0.1.0-50fe752` and
-`cdk-ldk-server-processor@0.1.0-fe468ca` with `just catalog-image`. Publishing
+`cdk-ldk-server-processor@0.1.0-d7244e2` with `just catalog-image`. Publishing
 requires the existing explicit namespace confirmation; a local build is not a
 published distribution artifact.
 

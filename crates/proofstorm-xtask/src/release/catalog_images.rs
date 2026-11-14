@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
+    collections::BTreeSet,
     ffi::OsString,
     fs,
     io::Write,
@@ -15,7 +16,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-const NAMESPACE: &str = "ghcr.io/orangeshyguy21/proofstorm";
+const NAMESPACE: &str = "ghcr.io/osygy/proofstorm";
 const RECIPES: &[&str] = &[
     "bitcoin-core",
     "cdk-mint",
@@ -78,10 +79,18 @@ fn legacy_version(name: &str) -> Result<&'static str> {
 const VERSIONED_RECIPES: &[(&str, &str, &str)] = &[
     ("bitcoin-core", "29.4", "docker/bitcoin/Dockerfile.29.4"),
     ("bitcoin-core", "30.3", "docker/bitcoin/Dockerfile.30.3"),
+    ("bitcoin-core", "30.4", "docker/bitcoin/Dockerfile.30.4"),
+    ("bitcoin-core", "31.2", "docker/bitcoin/Dockerfile.31.2"),
+    ("bitcoin-core", "32.1", "docker/bitcoin/Dockerfile.32.1"),
     (
         "nutshell-mint",
         "0.21.0",
         "docker/mint/Dockerfile.nutshell-0.21.0",
+    ),
+    (
+        "nutshell-mint",
+        "0.22.1",
+        "docker/mint/Dockerfile.nutshell-0.22.1",
     ),
     ("cdk-mint", "0.18.1", "docker/mint/Dockerfile.cdk-0.18.1"),
     (
@@ -94,6 +103,22 @@ const VERSIONED_RECIPES: &[(&str, &str, &str)] = &[
         "cdk-cli-wallet",
         "0.18.2",
         "docker/wallet/Dockerfile.cdk-0.18.2",
+    ),
+    ("cdk-mint", "0.18.3", "docker/mint/Dockerfile.cdk-0.18.3"),
+    (
+        "cdk-cli-wallet",
+        "0.18.3",
+        "docker/wallet/Dockerfile.cdk-0.18.3",
+    ),
+    (
+        "cdk-ldk-server-processor",
+        "0.1.0-d7244e2",
+        "docker/payment/Dockerfile.cdk-ldk-server-d7244e2",
+    ),
+    (
+        "cocod-wallet",
+        "0.0.17-dev.8fd97f38",
+        "docker/wallet/Dockerfile.cocod-8fd97f38",
     ),
     // Macaroon authentication for open-ssp; the LDK Server processor keeps 50fe752.
     (
@@ -290,6 +315,30 @@ fn current_repository(name: &str) -> &str {
     }
 }
 
+/// Every pinned third-party image Proofstorm serves from its GHCR mirror: the
+/// upstream catalog images of both platform catalogs and the build helpers.
+pub(crate) fn upstream_origins() -> BTreeSet<String> {
+    let mut origins = BTreeSet::new();
+    for platform in [
+        proofstorm_core::CatalogPlatform::LinuxArm64,
+        proofstorm_core::CatalogPlatform::LinuxAmd64,
+    ] {
+        let catalog = proofstorm_core::distributed_catalog_for_platform(platform);
+        origins.extend(
+            catalog
+                .entries
+                .iter()
+                .filter_map(|entry| proofstorm_core::upstream_origin(&entry.image)),
+        );
+    }
+    origins.extend(
+        proofstorm_core::UPSTREAM_HELPER_ORIGINS
+            .iter()
+            .map(ToString::to_string),
+    );
+    origins
+}
+
 fn copy_repository_matches(source: &str, destination: &str) -> bool {
     source == destination || current_repository(source) == destination
 }
@@ -453,15 +502,27 @@ fn load(work: &Path) -> Result<Receipt> {
             "recipe changed after preparation"
         );
         if receipt.repository == "cocod-wallet" {
-            verify_cocod_archive(work)?;
+            let version = match &receipt.input {
+                Input::Build { version, .. } => version.clone(),
+                Input::Copy { .. } => None,
+            };
+            verify_cocod_archive(work, version.as_deref())?;
         }
     }
     Ok(receipt)
 }
 
-fn prepare_cocod(staging: &Path, recipe_sha256: &str) -> Result<()> {
-    let record =
-        bundle::read_json(&staging.join("source/docker/wallet/cocod-44e5101c-provenance.json"))?;
+/// The provenance record of a reviewed cocod source snapshot. Receipts made
+/// before versioned recipes recorded no version; they are the legacy snapshot.
+fn cocod_provenance(version: Option<&str>) -> &'static str {
+    match version {
+        Some("0.0.17-dev.8fd97f38") => "docker/wallet/cocod-8fd97f38-provenance.json",
+        _ => "docker/wallet/cocod-44e5101c-provenance.json",
+    }
+}
+
+fn prepare_cocod(staging: &Path, version: &str, recipe_sha256: &str) -> Result<()> {
+    let record = bundle::read_json(&staging.join("source").join(cocod_provenance(Some(version))))?;
     let commit = text(&record, "commit_sha")?;
     ensure!(
         commit.len() == 40
@@ -498,13 +559,12 @@ fn prepare_cocod(staging: &Path, recipe_sha256: &str) -> Result<()> {
         status.success() && fs::metadata(&archive)?.len() <= 256 * 1024 * 1024,
         "source archive download failed"
     );
-    verify_cocod_archive(staging)?;
+    verify_cocod_archive(staging, Some(version))?;
     Ok(())
 }
 
-fn verify_cocod_archive(work: &Path) -> Result<()> {
-    let record =
-        bundle::read_json(&work.join("source/docker/wallet/cocod-44e5101c-provenance.json"))?;
+fn verify_cocod_archive(work: &Path, version: Option<&str>) -> Result<()> {
+    let record = bundle::read_json(&work.join("source").join(cocod_provenance(version)))?;
     let path = work.join("context/source.tar.gz");
     crate::development::regular(&path)?;
     ensure!(
@@ -566,7 +626,7 @@ fn prepare(root: &Path, work: &Path, name: &str, platform: &str, copy: Option<&s
             &recipe_sha256,
         )?;
         if name == "cocod-wallet" {
-            prepare_cocod(staging.path(), &recipe_sha256)?;
+            prepare_cocod(staging.path(), version, &recipe_sha256)?;
         }
         Input::Build {
             source,
@@ -668,6 +728,9 @@ fn valid_probe_version(repository: &str, version: &str, output: &str) -> bool {
                 == "ldk-server 0.1.0 (unknown)\nldk-server-cli 0.1.0 (unknown)\n762bc473342c8f945475785ec6743a9b26f56aff"
         }
         "ldk-server" => output.trim() == "ldk-server 0.1.0\nldk-server-cli 0.1.0",
+        "cdk-ldk-server-processor" if version == "0.1.0-d7244e2" => {
+            output.trim() == "d7244e261506b51d5b309a558bf19cd4ffc32f13"
+        }
         "cdk-ldk-server-processor" => output.trim() == "fe468cad486157683eddbc0df4ff87ba71b6c0a3",
         "cdk-bark-processor" => {
             output.trim()
@@ -842,24 +905,38 @@ fn fields(work: &Path) -> Result<()> {
 }
 
 fn verify(image: &str, platform: &str, output: &Path) -> Result<()> {
-    let reference = registry::Reference::parse(image)?;
-    let name = reference
-        .repository
-        .rsplit('/')
-        .next()
-        .context("missing repository")?;
-    recipe(name)?;
-    ensure!(
-        image.starts_with(&format!("{NAMESPACE}/{name}@")),
-        "only approved published catalog images may be verified here"
-    );
+    // The upstream mirror holds only the digests of pinned third-party images.
+    let mirrored = image
+        .strip_prefix(&format!("{}@", proofstorm_core::UPSTREAM_MIRROR))
+        .is_some_and(|digest| {
+            upstream_origins()
+                .iter()
+                .any(|origin| origin.split_once('@').is_some_and(|(_, pin)| pin == digest))
+        });
+    if !mirrored {
+        let reference = registry::Reference::parse(image)?;
+        let name = reference
+            .repository
+            .rsplit('/')
+            .next()
+            .context("missing repository")?;
+        recipe(name)?;
+        ensure!(
+            image.starts_with(&format!("{NAMESPACE}/{name}@")),
+            "only approved published catalog images may be verified here"
+        );
+    }
     registry::architecture(platform)?;
     let output = output_path(output)?;
     let mut file = fs::OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(output)?;
-    let result = registry::verify(image, None, platform, false);
+    let result = if mirrored {
+        registry::verify_mirror(image, platform)
+    } else {
+        registry::verify(image, None, platform, false)
+    };
     file.write_all(&serde_json::to_vec_pretty(&json!({"format_version":1,"image":image,"required_platform":platform,"anonymous_verified":result.is_ok(),"platforms":result.as_ref().ok().map(|r| &r.platforms),"release_ready":false,"error":result.as_ref().err().map(ToString::to_string)}))?)?;
     result?;
     Ok(())
@@ -878,6 +955,12 @@ pub(super) fn cli(args: impl Iterator<Item = OsString>) -> Result<()> {
     }
     match args.as_slice() {
         ["audit"] => audit::run(),
+        ["upstream-list"] => {
+            for origin in upstream_origins() {
+                println!("{origin}");
+            }
+            Ok(())
+        }
         ["list"] => {
             println!("{}", recipe_list());
             Ok(())

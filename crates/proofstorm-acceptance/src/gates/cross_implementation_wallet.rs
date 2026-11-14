@@ -20,16 +20,16 @@ fn cell_document() -> Value {
         "api_version": "proofstorm/v1alpha1",
         "name": "cross-mint-wallet-live-cell",
         "components": [
-            {"id": "chain", "kind": "bitcoin", "implementation": "bitcoin-core", "version": "31.1", "config_version": "bitcoin-core/31/v1", "control": "cell", "config": {}},
+            {"id": "chain", "kind": "bitcoin", "implementation": "bitcoin-core", "version": "32.1", "config_version": "bitcoin-core/31/v1", "control": "cell", "config": {}},
             {"id": "mint-lnd", "kind": "lightning", "implementation": "lnd", "version": proofstorm_core::LND_VERSION, "config_version": "lnd/0.20/v1", "control": "cell", "config": {"alias": "proofstorm-cross-mint"}},
             {"id": "payer-lnd", "kind": "lightning", "implementation": "lnd", "version": proofstorm_core::LND_VERSION, "config_version": "lnd/0.20/v1", "control": "cell", "config": {"alias": "proofstorm-cross-payer"}},
-            {"id": "cache", "kind": "database", "implementation": "redis", "version": "8.10.2", "config_version": "redis/8.10/v1", "control": "cell", "config": {"maxmemory_mb": 64}},
+            {"id": "cache", "kind": "database", "implementation": "redis", "version": "8.10.3", "config_version": "redis/8.10/v1", "control": "cell", "config": {"maxmemory_mb": 64}},
             {"id": "cdk-mint", "kind": "mint", "implementation": "cdk", "version": proofstorm_core::CDK_VERSION, "config_version": "cdk-mintd/0.18/v1", "control": "target", "config": {"name": "Proofstorm CDK Cross-Parity", "description": "Cross-implementation wallet acceptance"}},
-            {"id": "nutshell-mint", "kind": "mint", "implementation": "nutshell", "version": "0.21.0", "config_version": "nutshell-mint/0.20/v1", "control": "target", "config": {"name": "Proofstorm Nutshell Cross-Parity", "description": "Cross-implementation wallet acceptance", "redis_cache_ttl_seconds": 900}},
-            {"id": "cdk-wallet", "kind": "wallet", "implementation": "nutshell-wallet", "version": "0.21.0", "config_version": "nutshell-wallet/0.20/v1", "control": "cell", "config": {}},
-            {"id": "cdk-recipient", "kind": "wallet", "implementation": "nutshell-wallet", "version": "0.21.0", "config_version": "nutshell-wallet/0.20/v1", "control": "cell", "config": {}},
-            {"id": "nutshell-recipient", "kind": "wallet", "implementation": "nutshell-wallet", "version": "0.21.0", "config_version": "nutshell-wallet/0.20/v1", "control": "cell", "config": {}},
-            {"id": "nutshell-wallet", "kind": "wallet", "implementation": "nutshell-wallet", "version": "0.21.0", "config_version": "nutshell-wallet/0.20/v1", "control": "cell", "config": {}}
+            {"id": "nutshell-mint", "kind": "mint", "implementation": "nutshell", "version": "0.22.1", "config_version": "nutshell-mint/0.20/v1", "control": "target", "config": {"name": "Proofstorm Nutshell Cross-Parity", "description": "Cross-implementation wallet acceptance", "redis_cache_ttl_seconds": 900}},
+            {"id": "cdk-wallet", "kind": "wallet", "implementation": "nutshell-wallet", "version": "0.22.1", "config_version": "nutshell-wallet/0.20/v1", "control": "cell", "config": {}},
+            {"id": "cdk-recipient", "kind": "wallet", "implementation": "nutshell-wallet", "version": "0.22.1", "config_version": "nutshell-wallet/0.20/v1", "control": "cell", "config": {}},
+            {"id": "nutshell-recipient", "kind": "wallet", "implementation": "nutshell-wallet", "version": "0.22.1", "config_version": "nutshell-wallet/0.20/v1", "control": "cell", "config": {}},
+            {"id": "nutshell-wallet", "kind": "wallet", "implementation": "nutshell-wallet", "version": "0.22.1", "config_version": "nutshell-wallet/0.20/v1", "control": "cell", "config": {}}
         ],
         "links": [
             {"id": "mint-lnd-chain", "kind": "chain_backend", "from": "mint-lnd", "to": "chain", "binding": {"type": "chain", "network": "regtest"}},
@@ -102,7 +102,7 @@ fn exercise(context: &GateContext) -> Result<()> {
     let published = crate::cell::review(&mut client, &preview)?;
 
     for (component, catalog_id, version, config_version) in [
-        ("cache", "redis", "8.10.2", "redis/8.10/v1"),
+        ("cache", "redis", "8.10.3", "redis/8.10/v1"),
         (
             "cdk-mint",
             "cdk",
@@ -112,7 +112,7 @@ fn exercise(context: &GateContext) -> Result<()> {
         (
             "nutshell-mint",
             "nutshell",
-            "0.21.0",
+            "0.22.1",
             "nutshell-mint/0.20/v1",
         ),
     ] {

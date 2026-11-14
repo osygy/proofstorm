@@ -43,7 +43,7 @@ fn component(
         id: id.into(),
         kind,
         implementation: implementation.into(),
-        version: (implementation == "cocod-wallet").then(|| "0.0.17-dev.44e5101c".into()),
+        version: (implementation == "cocod-wallet").then(|| "0.0.17-dev.8fd97f38".into()),
         config_version: match implementation {
             "bitcoin-core" => "bitcoin-core/31/v1",
             "lnd" => "lnd/0.20/v1",
@@ -717,7 +717,7 @@ fn keycloak_lifetime_edits_roll_only_the_provider_and_gate_readiness_on_policy_a
             );
             assert_eq!(
                 env.iter()
-                    .find(|v| v["name"] == "KEYCLOAK_ADMIN_PASSWORD")
+                    .find(|v| v["name"] == "KC_BOOTSTRAP_ADMIN_PASSWORD")
                     .unwrap()["valueFrom"]["secretKeyRef"]["name"],
                 "identity-credentials"
             );
@@ -829,6 +829,41 @@ fn redis_memory_limit_tracks_its_cache_and_the_user_can_still_override_it() {
 /// The JVM augments and imports its realm at startup and needs more than the
 /// container default, so its limit must stay above it or the pod is OOM killed
 /// before it can ever pass its readiness probe.
+#[test]
+fn keycloak_bootstrap_administrator_names_follow_the_locked_release() {
+    let (spec, _) = backend_cell("keycloak");
+    let lock = resolve_lock(&spec, default_catalog()).unwrap();
+    let plans = compile_component_plans(INSTANCE_KEY, REVISION_DIGEST, &spec, &lock).unwrap();
+    let mut plan = plans
+        .into_iter()
+        .find(|p| p.component_id == "identity")
+        .unwrap();
+    let names = |plan: &proofstorm_core::ComponentPlanContract| {
+        let deployment =
+            serde_json::to_value(&render_keycloak_component(plan).unwrap().deployments[0]).unwrap();
+        deployment["spec"]["template"]["spec"]["containers"][0]["env"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|v| v["name"].as_str().map(ToString::to_string))
+            .filter(|name| name.contains("ADMIN"))
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(
+        plan.execution_context.environment["PROOFSTORM_KEYCLOAK_VERSION"],
+        proofstorm_core::KEYCLOAK_VERSION
+    );
+    assert_eq!(
+        names(&plan),
+        ["KC_BOOTSTRAP_ADMIN_USERNAME", "KC_BOOTSTRAP_ADMIN_PASSWORD"]
+    );
+    // Deprecated 25.x locks keep the administrator names that release reads.
+    plan.execution_context
+        .environment
+        .insert("PROOFSTORM_KEYCLOAK_VERSION".into(), "25.0.6".into());
+    assert_eq!(names(&plan), ["KEYCLOAK_ADMIN", "KEYCLOAK_ADMIN_PASSWORD"]);
+}
+
 #[test]
 fn keycloak_declares_a_memory_limit_above_the_container_default() {
     let mebibytes = |quantity: &k8s_openapi::apimachinery::pkg::api::resource::Quantity| {
@@ -1341,7 +1376,7 @@ fn nutshell_keycloak_link_derives_oidc_topology_and_keeps_provider_credentials_p
         .push(proofstorm_core::CatalogDependencySupport {
             link_kind: LinkKind::AuthenticationBackend,
             implementation: "keycloak".into(),
-            versions: ["25.0.6".into()].into(),
+            versions: [proofstorm_core::KEYCLOAK_VERSION.into()].into(),
         });
     // Authentication links need a declared mode, not only a dependency.
     nutshell

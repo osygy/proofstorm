@@ -123,7 +123,10 @@ fn observation_kind(component: &proofstorm_core::ComponentSpec) -> &str {
 fn matches_adapter(implementation: &str, version: Option<&str>) -> bool {
     match implementation {
         "cdk-cli-wallet" => version == Some("cdk-cli/0.18/observations/v1"),
-        "cocod-wallet" => version == Some("cocod/44e5101c/observations/v1"),
+        "cocod-wallet" => matches!(
+            version,
+            Some("cocod/44e5101c/observations/v1" | "cocod/8fd97f38/observations/v1")
+        ),
         "nutshell-wallet" => version == Some("0.1.0-alpha.1"),
         _ => true,
     }

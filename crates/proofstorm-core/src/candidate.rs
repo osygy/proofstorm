@@ -845,7 +845,7 @@ mod tests {
         let base = default_catalog()
             .entries
             .iter()
-            .find(|e| e.id == "nutshell")
+            .find(|e| e.id == "nutshell" && e.version == "0.21.0")
             .unwrap();
         let entry = candidate_catalog_entry(base, &mint).unwrap();
         let source = entry.source.as_ref().unwrap();
@@ -980,7 +980,7 @@ mod tests {
         let base = default_catalog()
             .entries
             .iter()
-            .find(|e| e.id == "nutshell")
+            .find(|e| e.id == "nutshell" && e.version == "0.21.0")
             .unwrap();
         assert!(
             !candidate_catalog_entry(base, &old)
@@ -1025,7 +1025,7 @@ mod tests {
             .iter()
             .find(|support| support.implementation == "nutshell")
             .expect("Nutshell support");
-        assert_eq!(support.preferred_version.as_deref(), Some("0.21.0"));
+        assert_eq!(support.preferred_version.as_deref(), Some("0.22.1"));
         assert!(
             !support
                 .supported_versions
@@ -1105,7 +1105,7 @@ mod tests {
         let mut candidate = succeeded_candidate();
         candidate.id = "lnd-pr-999".into();
         candidate.implementation = "lnd".into();
-        candidate.base_version = "0.21.4-beta".into();
+        candidate.base_version = "0.21.8-beta".into();
         candidate.version = Some("candidate-pr999-aabbccdd".into());
         candidate.pull_request_url = "https://github.com/lightningnetwork/lnd/pull/999".into();
         candidate.repository = Some("https://github.com/lightningnetwork/lnd.git".into());

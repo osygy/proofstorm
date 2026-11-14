@@ -19,7 +19,7 @@ pub(super) fn document(input_fee_ppk: u64) -> Value {
     json!({
         "api_version":"proofstorm/v1alpha1", "name":"cdk-wallet-checkpoint",
         "components":[
-            {"id":"chain","kind":"bitcoin","implementation":"bitcoin-core","version":"31.1","config_version":"bitcoin-core/31/v1","control":"cell","config":{}},
+            {"id":"chain","kind":"bitcoin","implementation":"bitcoin-core","version":"32.1","config_version":"bitcoin-core/31/v1","control":"cell","config":{}},
             {"id":"mint-lnd","kind":"lightning","implementation":"lnd","version": proofstorm_core::LND_VERSION,"config_version":"lnd/0.20/v1","control":"cell","config":{}},
             {"id":"payer-lnd","kind":"lightning","implementation":"lnd","version": proofstorm_core::LND_VERSION,"config_version":"lnd/0.20/v1","control":"cell","config":{}},
             {"id":"mint","kind":"mint","implementation":"cdk","version": proofstorm_core::CDK_VERSION,"config_version":"cdk-mintd/0.18/v1","control":"target","config":{"input_fee_ppk":input_fee_ppk}},
@@ -541,9 +541,15 @@ pub fn run_with_fee(context: &GateContext, input_fee_ppk: u64) -> Result<()> {
     let published = crate::cell::review(&mut client, &preview)?;
     save(&directory, "published", &published)?;
     let locked = cell::lock_entry(&published, "cdk-cli-wallet")?;
-    if locked.pointer("/build_provenance/commit_sha")
-        != Some(&json!("9f6d3a3734d7223d10b5553e3591d3f9d5c6c904"))
-    {
+    // The current CDK wallet release's source commit, read from the catalog.
+    let current = proofstorm_core::default_catalog()
+        .entries
+        .iter()
+        .find(|entry| entry.id == "cdk-cli-wallet" && entry.version == proofstorm_core::CDK_VERSION)
+        .and_then(|entry| entry.build_provenance.as_ref())
+        .map(|provenance| provenance.commit_sha.clone())
+        .ok_or_else(|| anyhow::anyhow!("catalog has no current CDK wallet provenance"))?;
+    if locked.pointer("/build_provenance/commit_sha") != Some(&json!(current)) {
         bail!("wallet lock does not contain the current CDK source provenance");
     }
     crate::cell::apply(&mut client, &preview)?;

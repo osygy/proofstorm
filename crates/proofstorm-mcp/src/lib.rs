@@ -3336,7 +3336,7 @@ mod tests {
                 "runtime":{"state":"available","fetched_at_unix":1,"source_updated_at_unix":null,
                     "resource_version":null,"generation":1,"observed_generation":1,"phase":"ready","error":null},
                 "components":{"items":[{"id":"chain","kind":"bitcoin","implementation":"bitcoin-core",
-                    "version":"31.1","ready":true,"conditions":[],"endpoints":[]}],"next_cursor":null},
+                    "version":"31.2","ready":true,"conditions":[],"endpoints":[]}],"next_cursor":null},
                 "links":{"items":[],"next_cursor":null},"resources":null,"resource_error":null,
                 "sessions":{"items":[],"next_cursor":null},"activity":{"items":[],"next_cursor":null}
             }]}
@@ -3351,7 +3351,7 @@ mod tests {
         assert_eq!(visible["cells"]["items"][0]["runtime"]["phase"], "ready");
         assert_eq!(
             visible["cells"]["items"][0]["components"]["items"][0]["version"],
-            "31.1"
+            "31.2"
         );
         assert_eq!(
             visible["cells"]["items"][0]["components"]["items"][0]["ready"],
@@ -3421,7 +3421,7 @@ mod tests {
         assert!(backend.supports(NetworkFaultFeature::Partition));
         assert!(!backend.supports(NetworkFaultFeature::Delay));
         let catalog = default_catalog();
-        assert_eq!(catalog.entries.len(), 30);
+        assert_eq!(catalog.entries.len(), 47);
         assert!(catalog.entries.iter().all(|entry| {
             entry.config_version.contains('/')
                 && entry.config_schema_digest.starts_with("sha256:")
@@ -3432,7 +3432,7 @@ mod tests {
         let cdk = catalog
             .entries
             .iter()
-            .find(|entry| entry.id == "cdk" && entry.version == "0.18.2")
+            .find(|entry| entry.id == "cdk" && entry.version == "0.18.3")
             .expect("CDK support contract");
         assert_eq!(cdk.config_version, "cdk-mintd/0.18/v1");
         assert_eq!(
@@ -3451,7 +3451,7 @@ mod tests {
         assert!(
             cdk.support_matrix.compatible_wallet_adapters[0]
                 .versions
-                .contains("0.20.3")
+                .contains("0.22.1")
         );
         assert!(
             cdk.config_schema["properties"]
@@ -3530,7 +3530,7 @@ mod tests {
                 support.supported_versions.contains(version)
                     && (matches!(
                         support.implementation.as_str(),
-                        "lnd" | "nutshell" | "nutshell-wallet"
+                        "lnd" | "cln" | "bitcoin-core" | "nutshell" | "nutshell-wallet"
                     ) || support.minimum_supported == support.preferred_version
                         && support.supported_versions.len() == 1)
             })
@@ -3593,7 +3593,7 @@ mod tests {
         page.items = items;
         let page: CatalogListResponse =
             serde_json::from_value(serde_json::to_value(page).unwrap()).unwrap();
-        assert_eq!(page.items.len(), 24);
+        assert_eq!(page.items.len(), 29);
         assert!(page.next_cursor.is_none());
         assert!(read_query::wire_size(&page).unwrap() <= MAX_AGENT_RESPONSE_BYTES);
         assert!(page.items.iter().all(|entry| {
@@ -3612,11 +3612,14 @@ mod tests {
                             | "open-ssp"
                             | "cdk-spark-processor"
                     ) && entry.support_lifecycle == SupportLifecycle::Experimental
-                    || entry.id == "lnd"
-                        && entry.version == "0.20.5-beta"
-                        && entry.support_lifecycle == SupportLifecycle::Supported
+                    || matches!(
+                        (entry.id.as_str(), entry.version.as_str()),
+                        ("lnd", "0.20.8-beta" | "0.19.3-beta")
+                            | ("cln", "26.04.1" | "25.12.1")
+                            | ("bitcoin-core", "31.2" | "30.4")
+                    ) && entry.support_lifecycle == SupportLifecycle::Supported
                     || matches!(entry.id.as_str(), "nutshell" | "nutshell-wallet")
-                        && entry.version == "0.20.3"
+                        && entry.version == "0.21.0"
                         && entry.support_lifecycle == SupportLifecycle::Supported)
         }));
         let summary = page
@@ -3657,14 +3660,14 @@ mod tests {
     #[test]
     fn missing_catalog_version_reports_exact_installed_alternatives() {
         let catalog = default_catalog();
-        let error = exact_catalog_entry(&catalog.entries, "lnd", "0.21.4-beta4")
+        let error = exact_catalog_entry(&catalog.entries, "lnd", "0.21.8-beta4")
             .expect_err("near-match must not silently select another version");
         let message = error.message.to_string();
         assert!(message.contains("[catalog_entry_not_found]"));
         assert!(message.contains("no changes were made"));
         assert!(message.contains("Recovery:"));
-        assert!(message.contains("0.20.5-beta"));
-        assert!(message.contains("0.21.4-beta"));
+        assert!(message.contains("0.20.8-beta"));
+        assert!(message.contains("0.21.8-beta"));
     }
 
     #[test]
@@ -3850,7 +3853,7 @@ mod tests {
         }
         let spec = serde_json::from_value(serde_json::json!({
             "api_version":"proofstorm/v1alpha1","name":"cancel","links":[],
-            "components":[{"id":"chain","kind":"bitcoin","implementation":"bitcoin-core","version":"31.1","config_version":"bitcoin-core/31/v1","control":"cell","config":{}}]
+            "components":[{"id":"chain","kind":"bitcoin","implementation":"bitcoin-core","version":"31.2","config_version":"bitcoin-core/31/v1","control":"cell","config":{}}]
         })).unwrap();
         store
             .create_draft("alpha", "designer", "cancel", &spec, "draft")
@@ -3921,7 +3924,7 @@ mod tests {
         let store = seeded_store();
         let spec = serde_json::from_value(serde_json::json!({
             "api_version":"proofstorm/v1alpha1", "name":"automatic", "links":[],
-            "components":[{"id":"chain","kind":"bitcoin","implementation":"bitcoin-core","version":"31.1","config_version":"bitcoin-core/31/v1","control":"cell","config":{}}]
+            "components":[{"id":"chain","kind":"bitcoin","implementation":"bitcoin-core","version":"31.2","config_version":"bitcoin-core/31/v1","control":"cell","config":{}}]
         })).unwrap();
         store
             .create_draft("alpha", "designer", "automatic", &spec, "draft")
@@ -4084,7 +4087,7 @@ mod tests {
                     "id": "chain",
                     "kind": "bitcoin",
                     "implementation": "bitcoin-core",
-                    "version": "31.1",
+                    "version": "31.2",
                     "config_version": "bitcoin-core/31/v1",
                     "control": "cell",
                     "config": {}
@@ -4542,7 +4545,7 @@ mod tests {
         assert!(nutshell.compatible_dependencies.iter().any(|dependency| {
             dependency.link_kind == proofstorm_core::LinkKind::DatabaseBackend
                 && dependency.implementation == "redis"
-                && dependency.versions.contains("8.10.2")
+                && dependency.versions.contains("8.10.3")
         }));
     }
 

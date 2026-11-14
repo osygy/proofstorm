@@ -110,8 +110,20 @@ fn published_bark_images_are_downloadable_on_demand_and_prefetched() {
         let runtime = catalog_for_platform(platform);
         let distributed = distributed_catalog_for_platform(platform);
         let admitted = catalog_images(&runtime);
-        let prefetch = catalog_images(&distributed);
-        assert_eq!(admitted, prefetch);
+        let prefetch = prefetch_images(&distributed);
+        assert!(prefetch.is_subset(&admitted));
+        // Deprecated entries remain admitted for saved locks but are never prefetched.
+        for entry in &distributed.entries {
+            assert!(admitted.contains(&entry.image));
+            if entry.support_lifecycle != proofstorm_core::SupportLifecycle::Deprecated {
+                assert!(prefetch.contains(&entry.image));
+            } else if !distributed.entries.iter().any(|other| {
+                other.image == entry.image
+                    && other.support_lifecycle != proofstorm_core::SupportLifecycle::Deprecated
+            }) {
+                assert!(!prefetch.contains(&entry.image));
+            }
+        }
         for image in &prefetch {
             assert_eq!(
                 download_source(image, &runtime, &distributed).unwrap(),
@@ -132,7 +144,7 @@ fn published_bark_images_are_downloadable_on_demand_and_prefetched() {
             assert!(
                 download_source(image, &runtime, &distributed)
                     .unwrap()
-                    .starts_with(&format!("ghcr.io/orangeshyguy21/proofstorm/{id}@sha256:"))
+                    .starts_with(&format!("ghcr.io/osygy/proofstorm/{id}@sha256:"))
             );
         }
     }
@@ -216,7 +228,7 @@ fn renamed_mint_repositories_preserve_saved_locks_only_for_shipped_digests() {
             source(&previous_image).unwrap(),
             previous_image.replace(
                 "proofstorm-registry.localhost:5000",
-                "ghcr.io/orangeshyguy21/proofstorm"
+                "ghcr.io/osygy/proofstorm"
             )
         );
 
@@ -235,7 +247,7 @@ fn renamed_mint_repositories_preserve_saved_locks_only_for_shipped_digests() {
 }
 
 #[test]
-fn probe_and_saved_workspace_locks_download_the_upstream_busybox_pin() {
+fn probe_and_saved_workspace_locks_download_the_mirrored_busybox_pin() {
     let home = tempfile::tempdir().unwrap();
     let installation = fixture_installation(home.path());
     let mut lock = sample_lock();
@@ -245,7 +257,13 @@ fn probe_and_saved_workspace_locks_download_the_upstream_busybox_pin() {
     let selected = selected_images(&installation, &lock).unwrap();
     assert!(selected.contains(image));
     let public = source(image).unwrap();
-    assert!(public.starts_with("docker.io/library/busybox@sha256:"));
+    // Third-party pins download from Proofstorm's GHCR mirror, not Docker Hub.
+    assert!(public.starts_with(&format!("{}@sha256:", proofstorm_core::UPSTREAM_MIRROR)));
+    assert!(
+        proofstorm_core::upstream_origin(image)
+            .unwrap()
+            .starts_with("docker.io/library/busybox@sha256:")
+    );
     assert_eq!(
         image.split_once('@').unwrap().1,
         public.split_once('@').unwrap().1
@@ -314,7 +332,7 @@ fn bootstrap_pins_are_complete_and_immutable() {
 
 #[test]
 fn published_controller_requires_the_compiled_version_and_contract() {
-    let mut info = serde_json::json!({"image":format!("ghcr.io/orangeshyguy21/proofstorm/proofstormd@sha256:{}","a".repeat(64)),"metadata":{"version":env!("CARGO_PKG_VERSION"),"runtime_contract_sha256":crate::release::runtime_contract_sha256()}});
+    let mut info = serde_json::json!({"image":format!("ghcr.io/osygy/proofstorm/proofstormd@sha256:{}","a".repeat(64)),"metadata":{"version":env!("CARGO_PKG_VERSION"),"runtime_contract_sha256":crate::release::runtime_contract_sha256()}});
     validate_controller(&info).unwrap();
     info["metadata"]["version"] = serde_json::json!("stale");
     assert!(validate_controller(&info).is_err());

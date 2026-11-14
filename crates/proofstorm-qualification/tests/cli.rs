@@ -154,27 +154,34 @@ fn mint_auth_is_qualified_only_where_declared_and_keeps_identity_provider_covera
                     .any(|entry| entry["implementation"] == "postgresql")
         }));
     }
-    // Auth qualification is explicit for both current mints on both platforms.
+    // Auth qualification is explicit for every auth-capable mint release on
+    // both platforms: one CDK release, and both supported Nutshell families.
     for platform in ["linux/amd64", "linux/arm64"] {
-        for (implementation, gate) in [("cdk", "cdk-oidc"), ("nutshell", "nutshell-oidc")] {
+        for (implementation, gate, versions) in [
+            ("cdk", "cdk-oidc", vec![proofstorm_core::CDK_VERSION]),
+            ("nutshell", "nutshell-oidc", vec!["0.21.0", "0.22.1"]),
+        ] {
             let auth = cases
                 .as_array()
                 .unwrap()
                 .iter()
                 .filter(|case| case["platform"] == platform && case["scenario"]["name"] == gate)
                 .collect::<Vec<_>>();
-            assert_eq!(auth.len(), 1, "{platform}: {gate}");
-            let claims = auth[0]["claims"].to_string();
-            assert!(claims.contains("nut21_clear") && claims.contains("nut22_blind"));
-            let mint = auth[0]["components"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .find(|component| component["implementation"] == implementation)
-                .unwrap();
-            if implementation == "nutshell" {
-                assert_eq!(mint["version"], "0.21.0");
+            assert_eq!(auth.len(), versions.len(), "{platform}: {gate}");
+            let mut planned = Vec::new();
+            for case in auth {
+                let claims = case["claims"].to_string();
+                assert!(claims.contains("nut21_clear") && claims.contains("nut22_blind"));
+                let mint = case["components"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .find(|component| component["implementation"] == implementation)
+                    .unwrap();
+                planned.push(mint["version"].as_str().unwrap().to_owned());
             }
+            planned.sort();
+            assert_eq!(planned, versions, "{platform}: {gate}");
         }
     }
 }

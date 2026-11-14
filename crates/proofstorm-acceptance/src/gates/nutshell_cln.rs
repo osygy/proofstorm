@@ -1,4 +1,4 @@
-//! Nutshell 0.21.0 + Core Lightning REST: restricted rune contract,
+//! Nutshell 0.22.1 + Core Lightning REST: restricted rune contract,
 //! wallet round trip, balance accounting, and verified teardown.
 //!
 //! Ported from `tests/kubernetes/nutshell_cln_mcp_client.py`.
@@ -16,12 +16,12 @@ fn cell_document() -> Value {
         "api_version": "proofstorm/v1alpha1",
         "name": "nutshell-cln-live-cell",
         "components": [
-            {"id": "chain", "kind": "bitcoin", "implementation": "bitcoin-core", "version": "31.1", "config_version": "bitcoin-core/31/v1", "control": "cell", "config": {}},
+            {"id": "chain", "kind": "bitcoin", "implementation": "bitcoin-core", "version": "32.1", "config_version": "bitcoin-core/31/v1", "control": "cell", "config": {}},
             {"id": "seed-lnd", "kind": "lightning", "implementation": "lnd", "version": proofstorm_core::LND_VERSION, "config_version": "lnd/0.20/v1", "control": "cell", "config": {"alias": "proofstorm-cln-seed"}},
             {"id": "payer-lnd", "kind": "lightning", "implementation": "lnd", "version": proofstorm_core::LND_VERSION, "config_version": "lnd/0.20/v1", "control": "cell", "config": {"alias": "proofstorm-cln-payer"}},
             {"id": "mint-cln", "kind": "lightning", "implementation": "cln", "version": proofstorm_core::CLN_VERSION, "config_version": "cln/26.06/v1", "control": "cell", "config": {"alias": "proofstorm-cln-mint"}},
-            {"id": "mint", "kind": "mint", "implementation": "nutshell", "version": "0.21.0", "config_version": "nutshell-mint/0.20/v1", "control": "target", "config": {"name": "Proofstorm Nutshell CLN", "description": "Core Lightning REST acceptance", "clnrest_enable_mpp": true}},
-            {"id": "wallet", "kind": "wallet", "implementation": "nutshell-wallet", "version": "0.21.0", "config_version": "nutshell-wallet/0.20/v1", "control": "cell", "config": {}}
+            {"id": "mint", "kind": "mint", "implementation": "nutshell", "version": "0.22.1", "config_version": "nutshell-mint/0.20/v1", "control": "target", "config": {"name": "Proofstorm Nutshell CLN", "description": "Core Lightning REST acceptance", "clnrest_enable_mpp": true}},
+            {"id": "wallet", "kind": "wallet", "implementation": "nutshell-wallet", "version": "0.22.1", "config_version": "nutshell-wallet/0.20/v1", "control": "cell", "config": {}}
         ],
         "links": [
             {"id": "seed-chain", "kind": "chain_backend", "from": "seed-lnd", "to": "chain", "binding": {"type": "chain", "network": "regtest"}},
@@ -56,6 +56,14 @@ pub fn run(context: &GateContext) -> Result<()> {
             nutshell["support_matrix"]
         );
     }
+    // Exactly the supported Core Lightning families, never a deprecated patch.
+    let mut supported_cln: Vec<String> = proofstorm_core::default_catalog()
+        .entries
+        .iter()
+        .filter(|entry| entry.id == "cln" && entry.support_lifecycle.is_supported())
+        .map(|entry| entry.version.clone())
+        .collect();
+    supported_cln.sort();
     let advertises_cln = expect::array(&nutshell, "/support_matrix/payment_bindings")?
         .iter()
         .any(|binding| {
@@ -63,8 +71,21 @@ pub fn run(context: &GateContext) -> Result<()> {
                 .pointer("/backend/implementation")
                 .and_then(Value::as_str)
                 == Some("cln")
-                && binding.pointer("/backend/versions")
-                    == Some(&json!([proofstorm_core::CLN_VERSION]))
+                && binding
+                    .pointer("/backend/versions")
+                    .is_some_and(|versions| {
+                        let mut advertised: Vec<String> = versions
+                            .as_array()
+                            .into_iter()
+                            .flatten()
+                            .filter_map(|version| version.as_str().map(ToString::to_string))
+                            .collect();
+                        advertised.sort();
+                        advertised == supported_cln
+                            && advertised
+                                .iter()
+                                .any(|version| version == proofstorm_core::CLN_VERSION)
+                    })
         });
     if !advertises_cln {
         bail!("Nutshell does not advertise its exact Core Lightning binding");
@@ -260,7 +281,7 @@ pub fn run(context: &GateContext) -> Result<()> {
     )?;
 
     println!(
-        "Nutshell 0.21.0 + Core Lightning REST, restricted rune, wallet round-trip, balance accounting, and teardown passed"
+        "Nutshell 0.22.1 + Core Lightning REST, restricted rune, wallet round-trip, balance accounting, and teardown passed"
     );
     Ok(())
 }

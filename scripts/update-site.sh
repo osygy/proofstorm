@@ -45,7 +45,7 @@ site_update() (
   for ((page=1; page<=100; page++)); do
     curl -q --fail --silent --show-error --proto '=https' --max-time 30 --max-filesize 16777216 \
       -H "Authorization: Bearer ${GH_TOKEN:?}" -H 'Accept: application/vnd.github+json' \
-      "https://api.github.com/repos/orangeshyguy21/proofstorm/releases?per_page=100&page=$page" -o "$scratch/releases.json" || return 1
+      "https://api.github.com/repos/osygy/proofstorm/releases?per_page=100&page=$page" -o "$scratch/releases.json" || return 1
     count=$(jq -er 'if type == "array" then length else error("Invalid releases") end' "$scratch/releases.json") || return 1
     jq -r --arg channel "$channel" '.[] | select(.draft == false and (.published_at | type == "string" and length > 0) and .prerelease == ($channel == "alpha")) | .tag_name | select(type == "string")' "$scratch/releases.json" >"$scratch/page-tags" || return 1
     while IFS= read -r tag; do

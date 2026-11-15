@@ -32,7 +32,7 @@ curl() {
   case "$url" in
     https://site.example/release.json\?*) cp "$test_fixture/expected-metadata" "$destination" ;;
     https://site.example/install\?*) cp "$test_fixture/expected-installer" "$destination"; printf '%s' "$test_mime" ;;
-    'https://api.github.com/repos/orangeshyguy21/proofstorm/releases?per_page=100&page=1') cp "$test_fixture/releases" "$destination" ;;
+    'https://api.github.com/repos/osygy/proofstorm/releases?per_page=100&page=1') cp "$test_fixture/releases" "$destination" ;;
     https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/test-only)
       printf 'deployment\n' >>"$test_fixture/deployments"; printf 202 ;;
     *) echo 'Unexpected test request' >&2; return 1 ;;

@@ -64,12 +64,26 @@
         }
       ]
     },
-    "ci": "pending"
+    "ci": {
+      "revision": "9d222c3",
+      "checks": {
+        "run": "https://github.com/osygy/proofstorm/actions/runs/43628952136",
+        "attempt": 1,
+        "conclusion": "success",
+        "native_catalog_compatibility": "Build, images, 18 execute shards (amd64-0..8, arm64-0..8), verify and merge qualification passed on native linux/amd64 and linux/arm64."
+      },
+      "packaging": {
+        "run": "https://github.com/osygy/proofstorm/actions/runs/43628954724",
+        "attempt": 1,
+        "conclusion": "success",
+        "scope": "Standard candidate builds and contracts plus payment and Spark components on both architectures; nothing published."
+      }
+    }
   },
   "limitations": [
     "Fresh-version support only: no in-place database migration is claimed, including Nutshell 0.21 to 0.22 and Keycloak 25 to 26.",
     "Cells locked to a deprecated patch must be recreated before they can be edited.",
     "Local amd64 images were built under emulation; native amd64 behavior comes from the CI runs above."
   ],
-  "release_ready": false
+  "release_ready": true
 }

@@ -9,7 +9,94 @@ fn journal(installation: &Installation, phase: Phase) -> Journal {
         workloads: None,
         workloads_stopped: false,
         tools_running: true,
+        addresses: BTreeMap::new(),
     }
+}
+
+/// Runs `pin` against a fake Docker whose container has `endpoint` on network `net`.
+fn pin_transcript(endpoint: &Value, refuse_fixed: bool) -> (bool, Vec<String>) {
+    let calls = std::cell::RefCell::new(Vec::new());
+    let run = |args: &[&str]| -> Result<String> {
+        calls.borrow_mut().push(args.join(" "));
+        match args {
+            ["inspect", ..] => Ok(json!({ "net": endpoint }).to_string()),
+            ["network", "connect", "--ip", ..] if refuse_fixed => anyhow::bail!(
+                "user specified IP address is supported only when connecting to networks with user configured subnets"
+            ),
+            ["network", ..] => Ok(String::new()),
+            _ => unreachable!("unexpected docker call {args:?}"),
+        }
+    };
+    let pinned = pin(&run, "id", "net", Ipv4Addr::new(172, 18, 0, 2)).unwrap();
+    (pinned, calls.into_inner()[1..].to_vec())
+}
+
+#[test]
+fn stopped_containers_are_pinned_to_their_recorded_address() {
+    let (pinned, calls) = pin_transcript(&json!({"IPAMConfig": null, "IPAddress": ""}), false);
+    assert!(pinned);
+    assert_eq!(
+        calls,
+        [
+            "network disconnect net id",
+            "network connect --ip 172.18.0.2 net id"
+        ]
+    );
+    // A container pinned elsewhere moves to the recorded address.
+    let (pinned, calls) =
+        pin_transcript(&json!({"IPAMConfig": {"IPv4Address": "172.18.0.9"}}), false);
+    assert!(pinned && calls.len() == 2);
+    let (pinned, calls) =
+        pin_transcript(&json!({"IPAMConfig": {"IPv4Address": "172.18.0.2"}}), false);
+    assert!(pinned && calls.is_empty());
+    // A stop that ended between disconnect and connect is finished, not repeated.
+    let (pinned, calls) = pin_transcript(&Value::Null, false);
+    assert!(pinned);
+    assert_eq!(calls, ["network connect --ip 172.18.0.2 net id"]);
+    // Docker refusing a fixed address must never leave the container off the network.
+    let (pinned, calls) = pin_transcript(&json!({"IPAMConfig": null}), true);
+    assert!(!pinned);
+    assert_eq!(calls.last().unwrap(), "network connect net id");
+}
+
+#[test]
+fn addresses_are_read_from_the_runtime_network_only() {
+    let docker = |networks: Value| move |_: &[&str]| -> Result<String> { Ok(networks.to_string()) };
+    let running =
+        json!({"net": {"IPAddress": "172.18.0.3"}, "bridge": {"IPAddress": "172.17.0.2"}});
+    assert_eq!(
+        address(&docker(running), "id", "net").unwrap(),
+        Some(Ipv4Addr::new(172, 18, 0, 3))
+    );
+    assert_eq!(
+        address(&docker(json!({"net": {"IPAddress": ""}})), "id", "net").unwrap(),
+        None
+    );
+    assert_eq!(
+        address(
+            &docker(json!({"bridge": {"IPAddress": "172.17.0.2"}})),
+            "id",
+            "net"
+        )
+        .unwrap(),
+        None
+    );
+    assert!(
+        address(
+            &docker(json!({"net": {"IPAddress": "invalid IP"}})),
+            "id",
+            "net"
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn journals_written_before_address_pinning_still_load() {
+    let journal: Journal = serde_json::from_value(json!({"format_version": 1, "installation_id": "a",
+        "phase": "stopped", "controller": null, "workloads": null, "workloads_stopped": true, "tools_running": false}))
+    .unwrap();
+    assert!(journal.addresses.is_empty());
 }
 
 #[tokio::test]

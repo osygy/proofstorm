@@ -3,6 +3,7 @@ use crate::{GateContext, cell, native, process};
 use anyhow::{Context, Result, ensure};
 use serde_json::{Value, json};
 use std::{
+    collections::BTreeMap,
     fs,
     net::{Ipv4Addr, TcpListener},
     process::Command,
@@ -23,13 +24,48 @@ fn storage(context: &GateContext) -> Result<Value> {
     Ok(json!(result))
 }
 
-fn stopped(context: &GateContext) -> Result<()> {
+fn containers(context: &GateContext) -> Result<serde_json::Map<String, Value>> {
     let receipt: Value = serde_json::from_slice(&fs::read(
         context.installation.home.join("runtime-resources.json"),
     )?)?;
-    let containers = receipt["containers"]
+    receipt["containers"]
         .as_object()
-        .context("container receipt missing")?;
+        .cloned()
+        .context("container receipt missing")
+}
+
+/// Each runtime container's address: its live one while running, its pin while stopped.
+fn addresses(context: &GateContext) -> Result<BTreeMap<String, Option<Ipv4Addr>>> {
+    let network = context.installation.network_name();
+    let mut result = BTreeMap::new();
+    for (name, id) in containers(context)? {
+        let mut command = Command::new("docker");
+        command.args([
+            "inspect",
+            "--format",
+            "{{json .NetworkSettings.Networks}}",
+            id.as_str().context("container ID")?,
+        ]);
+        let output = process::capture(command, 30)?;
+        ensure!(output.status.success(), "could not inspect {name}");
+        let networks: Value = serde_json::from_slice(&output.stdout)?;
+        let endpoint = &networks[&network];
+        let address = [
+            &endpoint["IPAddress"],
+            &endpoint["IPAMConfig"]["IPv4Address"],
+        ]
+        .into_iter()
+        .filter_map(Value::as_str)
+        .find(|address| !address.is_empty())
+        .map(str::parse)
+        .transpose()?;
+        result.insert(name, address);
+    }
+    Ok(result)
+}
+
+fn stopped(context: &GateContext) -> Result<()> {
+    let containers = containers(context)?;
     // Every node must be recorded, or stop and start would skip it.
     let agents = context.installation.cluster_agents()?;
     for node in
@@ -150,6 +186,7 @@ pub fn run(context: &GateContext) -> Result<()> {
         context.cli(&["start"])?["ready"] == true,
         "could not cancel incomplete stop"
     );
+    let addresses_before = addresses(context)?;
 
     for cycle in 0..3 {
         eprintln!("Runtime suspension cycle {}...", cycle + 1);
@@ -163,6 +200,10 @@ pub fn run(context: &GateContext) -> Result<()> {
             "stop did not complete"
         );
         stopped(context)?;
+        ensure!(
+            addresses(context)? == addresses_before,
+            "stop did not pin every runtime container to its address"
+        );
         ensure!(
             context.cli(&["stop"])?["state"] == "stopped",
             "repeat stop failed"
@@ -191,9 +232,34 @@ pub fn run(context: &GateContext) -> Result<()> {
             );
             drop(occupied);
         }
+        if cycle == 1 {
+            // Docker hands out the lowest free address, so a reversed start order (as a
+            // host reboot can produce) would move every node without the pins.
+            let ids = containers(context)?;
+            let mut order: Vec<_> = addresses_before
+                .iter()
+                .filter_map(|(name, address)| Some((address.as_ref()?, name)))
+                .collect();
+            order.sort();
+            order.reverse();
+            // The load balancer resolves the server by name when it starts, so it stays last.
+            order.sort_by_key(|(_, name)| name.ends_with("-serverlb"));
+            for (_, name) in order {
+                let mut command = Command::new("docker");
+                command.args(["start", ids[name].as_str().context("container ID")?]);
+                ensure!(
+                    process::capture(command, 60)?.status.success(),
+                    "could not start {name} out of order"
+                );
+            }
+        }
         ensure!(
             context.cli(&["start"])?["ready"] == true,
             "start did not restore services"
+        );
+        ensure!(
+            addresses(context)? == addresses_before,
+            "runtime container addresses changed across suspension"
         );
         ensure!(
             context.cli(&["start"])?["already_running"] == true,
@@ -256,5 +322,6 @@ pub fn run(context: &GateContext) -> Result<()> {
     context.cli(&["rm", "suspend-test"])?;
     context.record("runtime-lifecycle.json", &json!({"passed":true,"cycles":3,"persistent_mcp":true,
         "wallet_and_chain_preserved":true,"stopped_component_preserved":true,"same_volumes_and_identities":true,
-        "active_call_fence":true,"partial_start_retry":true,"stopped_containers_verified":true}))
+        "active_call_fence":true,"partial_start_retry":true,"stopped_containers_verified":true,
+        "addresses_pinned":true,"reversed_start_order":true}))
 }

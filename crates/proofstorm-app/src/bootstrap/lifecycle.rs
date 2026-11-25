@@ -10,7 +10,9 @@ use nix::fcntl::{Flock, FlockArg};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{
+    collections::BTreeMap,
     fs::{self, File, OpenOptions},
+    net::Ipv4Addr,
     os::unix::fs::OpenOptionsExt,
     path::Path,
     time::{Duration, Instant},
@@ -37,6 +39,9 @@ struct Journal {
     workloads: Option<Vec<Workload>>,
     workloads_stopped: bool,
     tools_running: bool,
+    /// Runtime network addresses recorded before the first container stopped; see `pin`.
+    #[serde(default)]
+    addresses: BTreeMap<String, Ipv4Addr>,
 }
 
 fn read(home: &Path) -> Result<Option<Journal>> {
@@ -219,6 +224,7 @@ pub async fn run(
             .map(|(_, id)| running(home, id))
             .transpose()?
             .unwrap_or(false),
+        addresses: BTreeMap::new(),
     });
     if !start {
         ensure!(
@@ -317,12 +323,105 @@ async fn suspend(
     }
     progress("Stopping runtime containers and registry");
     let containers = teardown::preserved_runtime(installation)?;
+    let home = &installation.home;
+    let network = installation.network_name();
+    // A stopped container has no address to read, so a retried stop keeps the first record.
+    for (name, id) in &containers {
+        if !journal.addresses.contains_key(name)
+            && running(home, id)?
+            && let Some(address) = address(&|args| docker(home, args, 30), id, &network)?
+        {
+            journal.addresses.insert(name.clone(), address);
+        }
+    }
+    save(home, journal)?;
     // Kubernetes workloads are already shut down. Keep the server and registry last.
     for name in start_order(installation)?.iter().rev() {
         if let Some(id) = containers.get(name)
-            && running(&installation.home, id)?
+            && running(home, id)?
         {
-            docker(&installation.home, &["stop", "--time", "60", id], 75)?;
+            docker(home, &["stop", "--time", "60", id], 75)?;
+        }
+    }
+    pin_addresses(installation, journal, &containers, progress)
+}
+
+/// A running container's address on the runtime network.
+fn address(
+    run: &impl Fn(&[&str]) -> Result<String>,
+    id: &str,
+    network: &str,
+) -> Result<Option<Ipv4Addr>> {
+    let networks: Value = serde_json::from_str(&run(&[
+        "inspect",
+        "--type",
+        "container",
+        "--format",
+        "{{json .NetworkSettings.Networks}}",
+        id,
+    ])?)?;
+    match networks[network]["IPAddress"].as_str() {
+        None | Some("") => Ok(None),
+        Some(address) => Ok(Some(
+            address
+                .parse()
+                .context("invalid runtime container address")?,
+        )),
+    }
+}
+
+/// Docker gives each starting container the lowest free address. Without a fixed
+/// address, a different start order (as after a host reboot) hands k3s's node IP to
+/// another container and k3s crash-loops. Pin a stopped container to its recorded
+/// address; false means Docker refused and the container was reattached unpinned.
+fn pin(
+    run: &impl Fn(&[&str]) -> Result<String>,
+    id: &str,
+    network: &str,
+    address: Ipv4Addr,
+) -> Result<bool> {
+    let networks: Value = serde_json::from_str(&run(&[
+        "inspect",
+        "--type",
+        "container",
+        "--format",
+        "{{json .NetworkSettings.Networks}}",
+        id,
+    ])?)?;
+    let endpoint = &networks[network];
+    let address = address.to_string();
+    if endpoint["IPAMConfig"]["IPv4Address"] == address.as_str() {
+        return Ok(true);
+    }
+    // Detached here means an earlier attempt stopped between disconnect and connect.
+    if !endpoint.is_null() {
+        run(&["network", "disconnect", network, id])?;
+    }
+    if run(&["network", "connect", "--ip", &address, network, id]).is_ok() {
+        return Ok(true);
+    }
+    // Older Docker refuses fixed addresses on networks without a configured subnet.
+    run(&["network", "connect", network, id])?;
+    Ok(false)
+}
+
+/// Pin only stopped containers: disconnecting a running k3s node breaks it.
+fn pin_addresses(
+    installation: &Installation,
+    journal: &Journal,
+    containers: &BTreeMap<String, String>,
+    progress: &dyn Fn(&str),
+) -> Result<()> {
+    let home = &installation.home;
+    let network = installation.network_name();
+    for (name, address) in &journal.addresses {
+        if let Some(id) = containers.get(name)
+            && !running(home, id)?
+            && !pin(&|args| docker(home, args, 30), id, &network, *address)?
+        {
+            progress(&format!(
+                "Docker refused to pin {name} to {address}; it may change address on the next start"
+            ));
         }
     }
     Ok(())
@@ -346,6 +445,8 @@ async fn resume(
 ) -> Result<Vec<String>> {
     progress("Starting saved runtime containers");
     let containers = teardown::preserved_runtime(installation)?;
+    // Repairs a stop that ended mid-pin; already pinned containers are untouched.
+    pin_addresses(installation, journal, &containers, progress)?;
     for name in start_order(installation)? {
         if name.ends_with("-tools") && !journal.tools_running {
             continue;
